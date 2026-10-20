@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {validateSource,classifyMedia,normalizeMedia,safeMediaHeaders} from '../lib/platforms.js';
-import {assertRemoteUrl,assertPublicAddresses,filenameFromMeta} from '../lib/safety.js';
+import {assertRemoteUrl,assertPublicAddresses,filenameFromMeta,isStreamManifest,mediaResponseProblem} from '../lib/safety.js';
 import {makeDownloadToken,verifyDownloadToken,hasDownloadProxy} from '../lib/token.js';
 
 test('platform validation exact domains, allowed subdomain',()=>{
@@ -62,4 +62,32 @@ test('reject private, reserved, and mixed DNS answers before the proxy connects'
   assert.doesNotThrow(()=>assertPublicAddresses([{address:'2606:4700:4700::1111',family:6}]));
   assert.throws(()=>assertPublicAddresses([{address:'8.8.8.8',family:4},{address:'127.0.0.1',family:4}]));
   assert.throws(()=>assertPublicAddresses([]));
+});
+
+test('label mentioning music or sound does not turn a video into audio',()=>{
+  assert.equal(classifyMedia('MP4 no sound','720p'),'video');
+  assert.equal(classifyMedia('Music Video','HD'),'video');
+  assert.equal(classifyMedia('Audio Only','128kbps'),'audio');
+  assert.equal(classifyMedia('Sound','128kbps'),'audio');
+  assert.equal(classifyMedia('MP3','320kbps','https://cdn.example.org/video.mp4'),'video');
+  assert.equal(classifyMedia('Video','720p','https://cdn.example.org/audio.m4a'),'audio');
+});
+
+test('reject padded, compact and documentation IPv6 aliases',()=>{
+  for(const address of ['2001:0db8::1','2001:0000::1','2001:0010::1','2001:002a::1','3fff::1','3ff0::1']) {
+    assert.throws(()=>assertPublicAddresses([{address,family:6}]),address);
+  }
+  assert.doesNotThrow(()=>assertPublicAddresses([{address:'2001:4860:4860::8888',family:6}]));
+});
+
+test('reject HLS/DASH playlists and incomplete upstream responses',()=>{
+  assert.equal(isStreamManifest('https://cdn.example.com/list.m3u8?token=1'),true);
+  assert.equal(isStreamManifest('https://cdn.example.com/list%2empd'),true);
+  assert.equal(isStreamManifest('https://cdn.example.com/file','application/vnd.apple.mpegurl'),true);
+  assert.notEqual(mediaResponseProblem(206,'video/mp4','https://cdn.example.com/video.mp4'),null);
+  assert.notEqual(mediaResponseProblem(204,'video/mp4','https://cdn.example.com/video.mp4'),null);
+  assert.notEqual(mediaResponseProblem(200,'application/dash+xml','https://cdn.example.com/media'),null);
+  assert.notEqual(mediaResponseProblem(200,'application/problem+json','https://cdn.example.com/media'),null);
+  assert.equal(mediaResponseProblem(200,'video/mp4','https://cdn.example.com/video.mp4'),null);
+  assert.equal(mediaResponseProblem(200,'application/octet-stream','https://cdn.example.com/video.mp4'),null);
 });
