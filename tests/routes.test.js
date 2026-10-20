@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
-import analyze, {withTimeout, extensionForMedia} from '../api/analyze.js';
+import analyze, {withTimeout, extensionForMedia, selectDownloadOptions} from '../api/analyze.js';
 import download from '../api/download.js';
 import health from '../api/health.js';
 
@@ -74,4 +74,16 @@ test('footer retains community links on main',()=>{
   assert.match(html,/https:\/\/whatsapp\.com\/channel\/0029VatAJdFHltYFp77RUU3a/);
   assert.match(html,/class="footer-social-links"/);
   assert.match(css,/\.footer-social-link\{/);
+});
+
+test('working download formats outrank twelve failed candidates',()=>{
+  const input=[
+    ...Array.from({length:12},(_,i)=>({ready:false,type:'Broken '+i})),
+    {ready:true,type:'MP4 1080p'},
+    {ready:true,type:'MP3'}
+  ];
+  const result=selectDownloadOptions(input);
+  assert.deepEqual(result.slice(0,2).map(item=>item.type),['MP4 1080p','MP3']);
+  assert.equal(result.length,12);
+  assert.deepEqual(selectDownloadOptions([]),[]);
 });
