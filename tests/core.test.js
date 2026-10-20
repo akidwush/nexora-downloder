@@ -27,6 +27,8 @@ test('classify media',()=>{
   assert.equal(classifyMedia('MP3','320kbps'),'audio');
   assert.equal(classifyMedia('Photo HD',''),'image');
   assert.equal(classifyMedia('No watermark','1080p'),'video');
+  assert.equal(classifyMedia('Media','','https://cdn.example.org/song.ogg?source=1'),'audio');
+  assert.equal(classifyMedia('Media','','https://cdn.example.org/cover.avif#preview'),'image');
 });
 test('normalize metadata and cap variants',()=>{
   const media={title:'foo',downloads:[{type:'MP4',quality:'HD',url:'https://cdn.example.org/foo.mp4'}]};
