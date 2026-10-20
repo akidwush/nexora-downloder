@@ -1,0 +1,25 @@
+# All Downloader Nexora - Netlify GitHub deployment.
+# No separate database, media storage, or proxy required.
+[build]
+  publish = "public"
+  command = "npm run check && npm test"
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+  external_node_modules = ["@coflyn/mori"]
+
+[functions.analyze]
+  included_files = ["node_modules/@coflyn/mori/bundle.js"]
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "DENY"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+[[headers]]
+  for = "/api/*"
+  [headers.values]
+    Cache-Control = "no-store"
