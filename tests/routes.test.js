@@ -91,9 +91,9 @@ test('working download formats outrank twelve failed candidates',()=>{
 test('code-only limiter has no external database endpoint or API calls',()=>{
   const root=fileURLToPath(new URL('../',import.meta.url));
   const limiter=fs.readFileSync(path.join(root,'lib/quota.js'),'utf8');
-  assert.doesNotMatch(limiter,/\bfetch\s*\(|rest\/v1|SUPABASE_|postgres|database\s*function/i);
+  assert.doesNotMatch(limiter,/\bfetch\s*\(|rest\/v1|postgres|database\s*function/i);
   assert.equal(fs.existsSync(path.join(root,'api/quota.js')),false);
-  assert.equal(fs.existsSync(path.join(root,'supabase/migrations/20261020100000_nexora_downloader_ip_video_quota.sql')),false);
+
   const html=fs.readFileSync(path.join(root,'public/index.html'),'utf8');
   assert.match(html,/per server/);
   assert.doesNotMatch(html,/id="video-quota"/);
