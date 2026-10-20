@@ -16,7 +16,7 @@ const icon = (id) => {
 };
 const supported = {
   tiktok:['tiktok.com','tt.site'], instagram:['instagram.com'],
-  youtube:['youtube.com','youtu.be'], facebook:['facebook.com','fb.watch'],
+  youtube:['youtube.com','youtu.be','youtube-nocookie.com'], facebook:['facebook.com','fb.watch'],
   twitter:['twitter.com','x.com','fxtwitter.com','vxtwitter.com','fixupx.com'],
   pinterest:['pinterest.com','pin.it'], spotify:['spotify.com'],
   reddit:['reddit.com','redd.it'], threads:['threads.com','threads.net'],
@@ -49,7 +49,7 @@ function detectPlatform(input) {
     return Object.keys(supported).find(key => supported[key].some(host => hostname===host || hostname.endsWith(`.${host}`))) || null;
   } catch { return null; }
 }
-function selectPlatform(name) {
+function selectPlatform(name, { focus = true } = {}) {
   selectedPlatform = name;
   $$('[data-platform]').forEach(chip => {
     const selected = chip.dataset.platform===name;
@@ -58,7 +58,7 @@ function selectPlatform(name) {
   });
   const hint = name==='all' ? 'Tempel link dari salah satu dari 16 platform yang tersedia.' : `Silakan tempel link ${platformNames[name] || name} publik.`;
   setFeedback(hint);
-  $('#url-input').focus({preventScroll:true});
+  if (focus) $('#url-input').focus({preventScroll:true});
 }
 function showLoading() {
   const target = $('#result-area'); target.replaceChildren();
@@ -160,7 +160,7 @@ $('#download-form').addEventListener('submit',async event=>{
   const detected=detectPlatform(value);
   if(parsed.protocol!=='https:' || parsed.username || parsed.password || parsed.port){setFeedback('Hanya link HTTPS publik yang diizinkan.',true);return;}
   if(!detected){setFeedback('Domain ini belum didukung. Coba salah satu dari 16 platform yang tersedia.',true);return;}
-  if(selectedPlatform!=='all' && selectedPlatform!==detected){selectPlatform(detected);toast('Platform otomatis disesuaikan dengan link.');}
+  if(selectedPlatform!=='all' && selectedPlatform!==detected){selectPlatform(detected,{focus:false});toast('Platform otomatis disesuaikan dengan link.');}
   busy=true;const button=$('#analyze-btn');button.disabled=true;button.querySelector('span').textContent='Analyzing...';
   setFeedback(`Sedang menganalisis tautan ${platformNames[detected]}...`);showLoading();
   const controller=new AbortController();const timeout=setTimeout(()=>controller.abort(),51000);
@@ -183,7 +183,7 @@ $('#paste-button').addEventListener('click',async()=>{
   }catch{toast('Akses clipboard ditolak. Tempel manual di kolom URL.');$('#url-input').focus();}
 });
 $('#url-input').addEventListener('input',()=>{
-  if($('#url-input').value.trim()) {const detected=detectPlatform($('#url-input').value);if(detected && $$('[data-platform]').some(x=>x.dataset.platform===detected)) selectPlatform(detected);else setFeedback('Tips: gunakan link publik yang bisa diakses tanpa login.');}
+  if($('#url-input').value.trim()) {const detected=detectPlatform($('#url-input').value);if(detected && $('[data-platform]').some(x=>x.dataset.platform===detected)) selectPlatform(detected,{focus:false});else setFeedback('Tips: gunakan link publik yang bisa diakses tanpa login.');}
   else setFeedback('Tips: gunakan link publik yang bisa diakses tanpa login.');
 });
 $$('[data-platform]').forEach(btn=>{btn.addEventListener('click',()=>selectPlatform(btn.dataset.platform));btn.setAttribute('aria-pressed',String(btn.classList.contains('selected')));});
