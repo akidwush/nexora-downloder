@@ -153,6 +153,23 @@
       </nav>
     </div>
     <div class="container footer-bottom"><span>© <span id="year"></span> All Downloader Nexora. Independent project.</span><span>Powered by Mori (GPL-3.0-or-later) · No affiliation with social platforms.</span></div></footer>
+  <dialog class="video-preview-dialog" id="video-preview-dialog" aria-labelledby="video-preview-title" aria-describedby="video-preview-status">
+    <div class="video-preview-panel">
+      <div class="video-preview-heading">
+        <div class="video-preview-heading-copy">
+          <span class="video-preview-eyebrow">✦ NEXORA VIDEO PREVIEW</span>
+          <h2 id="video-preview-title">Preview video</h2>
+        </div>
+        <button type="button" class="video-preview-close" id="video-preview-close" aria-label="Tutup preview">×</button>
+      </div>
+      <video id="video-preview-player" class="video-preview-player" controls playsinline preload="none" aria-label="Putar pratinjau video"></video>
+      <p id="video-preview-status" class="video-preview-status" role="status">Tekan tombol play untuk memutar video. Pemutaran bergantung pada server sumber.</p>
+      <div class="video-preview-actions">
+        <a class="btn btn-yellow video-preview-save" id="video-preview-save" href="#" target="_blank" rel="noopener noreferrer"><svg><use href="#i-download"/></svg> Download / Simpan ↗</a>
+        <button type="button" class="video-preview-dismiss" id="video-preview-done">Tutup</button>
+      </div>
+    </div>
+  </dialog>
   <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 </body>
 </html>
