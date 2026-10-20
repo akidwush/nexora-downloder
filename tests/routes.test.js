@@ -6,6 +6,7 @@ import {fileURLToPath} from 'node:url';
 import analyze, {withTimeout, extensionForMedia, selectDownloadOptions} from '../api/analyze.js';
 import download from '../api/download.js';
 import health from '../api/health.js';
+import quotaHandler from '../api/quota.js';
 
 function mockRes() {
   return {
@@ -86,4 +87,26 @@ test('working download formats outrank twelve failed candidates',()=>{
   assert.deepEqual(result.slice(0,2).map(item=>item.type),['MP4 1080p','MP3']);
   assert.equal(result.length,12);
   assert.deepEqual(selectDownloadOptions([]),[]);
+});
+
+test('video quota route fails closed without backend configuration',async()=>{
+  const old={DOWNLOAD_SECRET:process.env.DOWNLOAD_SECRET,SUPABASE_URL:process.env.SUPABASE_URL,SUPABASE_SECRET_KEY:process.env.SUPABASE_SECRET_KEY};
+  try {
+    delete process.env.SUPABASE_SECRET_KEY;
+    const res=mockRes();
+    await quotaHandler({method:'GET'},res);
+    assert.equal(res.statusCode,503);
+    assert.equal(res.output.limit,4);
+    const rejected=mockRes();
+    await quotaHandler({method:'POST'},rejected);
+    assert.equal(rejected.statusCode,405);
+    const html=fs.readFileSync(new URL('../public/index.html',import.meta.url),'utf8');
+    assert.match(html,/id="video-quota"/);
+    const js=fs.readFileSync(new URL('../public/app.js',import.meta.url),'utf8');
+    assert.match(js,/\/api\/quota/);
+    const analyzeSrc=fs.readFileSync(new URL('../api/analyze.js',import.meta.url),'utf8');
+    assert.match(analyzeSrc,/item\.kind === 'video' \? \{\} : \{directUrl:direct\}/);
+  } finally {
+    for(const [k,v] of Object.entries(old)) if(v===undefined) delete process.env[k]; else process.env[k]=v;
+  }
 });
