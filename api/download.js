@@ -2,7 +2,7 @@ import https from 'node:https';
 import { Transform } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { verifyDownloadToken } from '../lib/token.js';
-import { assertRemoteUrl, resolvePublicAddresses } from '../lib/safety.js';
+import { assertRemoteUrl, resolvePublicAddresses, mediaResponseProblem } from '../lib/safety.js';
 
 export const config = { maxDuration: 60 };
 const MAX_BYTES = 120 * 1024 * 1024;
@@ -72,14 +72,11 @@ export default async function handler(req,res) {
       }
       break;
     }
-    if (upstream.statusCode < 200 || upstream.statusCode >= 300) {
-      upstream.destroy();
-      return fail(res,502,'Server media menolak unduhan langsung.');
-    }
     const contentType = String(upstream.headers['content-type'] || 'application/octet-stream');
-    if (/^text\/|html|json|javascript|xml/i.test(contentType)) {
+    const responseProblem = mediaResponseProblem(upstream.statusCode, contentType, target);
+    if (responseProblem) {
       upstream.destroy();
-      return fail(res,502,'Provider tidak mengembalikan file media.');
+      return fail(res,502,responseProblem);
     }
     const length = Number(upstream.headers['content-length'] || '0');
     if (Number.isFinite(length) && length > MAX_BYTES) {
