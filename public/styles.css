@@ -135,3 +135,62 @@ body {
 /* Server-side, cross-browser video allowance */
 .quota-pill{display:flex;align-items:center;margin:18px 0 0;padding:11px 16px;border:2px solid var(--brown);border-radius:13px;background:#e5faf3;color:var(--brown);font-size:12px;font-weight:700;line-height:1.55;box-shadow:0 3px 0 var(--brown)}
 .quota-pill.quota-empty{background:#ffe6e8}
+
+
+/*
+ * Mobile overflow regression (Netlify): a fixed 425px hero illustration forced
+ * the grid track wider than a 320-400px viewport. The result header also used a
+ * flex row whose thumbnail + platform pill left only one letter of title width.
+ */
+html,body{max-width:100%;overflow-x:clip}
+.hero-grid,.download-section>.container,.downloader-card,#result-area,.result-ready,
+.result-summary,.result-options,.result-option,.result-meta,.result-format{min-width:0}
+.result-ready,.result-options{grid-template-columns:minmax(0,1fr)}
+.result-meta b,.result-format b,.result-meta p,.result-format p,.result-note{
+  overflow-wrap:anywhere;
+  word-break:normal;
+}
+.result-meta b{
+  display:-webkit-box;
+  -webkit-box-orient:vertical;
+  -webkit-line-clamp:2;
+  line-clamp:2;
+  overflow:hidden;
+}
+.result-platform{flex-shrink:0}
+@media(max-width:960px){
+  /* Never let wide positioned decorations expand a one-column grid. */
+  .hero-grid{grid-template-columns:minmax(0,1fr)}
+  .hero-copy{min-width:0}
+}
+@media(max-width:700px){
+  .hero-copy,.hero-actions,.hero-description,.hero-points{max-width:100%}
+  .hero-copy h1{max-width:100%;overflow-wrap:normal}
+  /* Give provider titles a real column instead of compressing to 1 character. */
+  .result-summary{
+    display:grid;
+    grid-template-columns:58px minmax(0,1fr);
+    gap:10px 12px;
+    align-items:center;
+    padding:12px;
+  }
+  .result-thumb{width:58px;height:58px}
+  .result-meta{width:100%;min-width:0}
+  .result-meta b{font-size:16px;line-height:1.28}
+  .result-platform{
+    grid-column:2;
+    justify-self:start;
+    margin-left:0;
+    max-width:100%;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .result-option{min-width:0}
+  .result-format{min-width:0}
+}
+@media(max-width:400px){
+  .result-summary{grid-template-columns:52px minmax(0,1fr);gap:9px;padding:10px}
+  .result-thumb{width:52px;height:52px}
+  .result-meta b{font-size:15px}
+  .result-platform{font-size:10px;padding:6px 9px}
+}
