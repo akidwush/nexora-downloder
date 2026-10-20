@@ -117,3 +117,23 @@ test('mobile results remain readable without giant grid tracks or one-letter tit
   // Provider-supplied titles are inserted as text, never raw HTML.
   assert.match(app,/make\('b','',data\.title \|\| 'Media tanpa judul'\)/);
 });
+
+test('video preview modal is available, accessible, and uses existing signed download tokens',()=>{
+  const root=fileURLToPath(new URL('../',import.meta.url));
+  const html=fs.readFileSync(path.join(root,'public/index.html'),'utf8');
+  const css=fs.readFileSync(path.join(root,'public/styles.css'),'utf8');
+  const app=fs.readFileSync(path.join(root,'public/app.js'),'utf8');
+  assert.match(html,/<dialog class="video-preview-dialog" id="video-preview-dialog"/);
+  assert.match(html,/id="video-preview-player"[^>]*controls playsinline preload="none"/);
+  assert.match(html,/id="video-preview-close" aria-label="Tutup preview"/);
+  assert.match(html,/id="video-preview-save"[^>]*target="_blank"/);
+  assert.match(css,/\.video-preview-dialog::backdrop/);
+  assert.match(css,/\.result-actions\{display:flex/);
+  assert.match(css,/@media\(max-width:700px\)\{\s*\.result-option\{flex-wrap:wrap\}/);
+  assert.match(app,/if\(redirectMode && kind==='video'\)/);
+  assert.match(app,/openVideoPreview\(entry\.downloadUrl,data\.title,thumbUrl\)/);
+  assert.match(app,/player\.src=downloadUrl/);
+  assert.match(app,/previewDialog\.addEventListener\('close'/);
+  // A direct provider URL must not be exposed for video in the analyze UI.
+  assert.match(app,/if \(direct && kind!=='video'\)/);
+});
