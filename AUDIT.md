@@ -44,3 +44,14 @@ Catatan: lulusnya unit test dan syntax check **tidak membuktikan** seluruh platf
 **Verifikasi:** GitHub Actions menjalankan syntax check dan unit tests otomatis setiap push ke main. Status commit akhir dapat dilihat pada tab Actions repository; pengujian live terhadap situs/provider eksternal tetap membutuhkan deployment dan tautan media asli.
 
 **Batasan belum terselesaikan:** belum diuji end-to-end dengan Mori pada runtime produksi dan sejumlah provider dapat menolak permintaan dari serverless; download streaming terpisah, DRM, konten privat, rate limiting persisten dan observability tetap di luar cakupan patch ini.
+
+## Limiter video lintas browser — 20 Oktober 2026
+
+- Video: maksimal **4 permintaan unduh yang disetujui backend dalam 24 jam berjalan** per IP publik. Pembatasan dicek setelah upstream mengembalikan respons media layak unduh dan sebelum mengirim body video.
+- Browser berbeda di IP yang sama memakai kuota bersama. IP pengguna disimpan **hanya sebagai HMAC-SHA256** memakai DOWNLOAD_SECRET; IPv6 digabung per /64 untuk mengurangi reset saat privacy address berubah.
+- Persistensi/atomicity: fungsi `public.nexora_downloader_quota` memakai transaksi advisory lock, tabel `public.nexora_downloader_ip_quota`, RLS aktif, akses hanya service_role. Row lama dibersihkan berkala oportunistik.
+- Video URL tidak dibocorkan dari hasil analisis; tombol unduhan memakai token bertanda tangan. Foto/audio tidak memakai kuota video. Token yang dibuat sebelum patch tanpa kategori dianggap video.
+- `GET /api/quota` membaca sisa slot; UI menampilkan 4/4 hingga 0/4 dan waktu pulih berikutnya.
+- **Fail closed:** tanpa `DOWNLOAD_SECRET`, `SUPABASE_URL`, dan `SUPABASE_SECRET_KEY` di runtime, video tidak dapat diunduh. Rahasia jangan dimasukkan ke git/frontend.
+- **Batasan:** IP tidak sama dengan identitas orang; satu Wi-Fi berbagi kuota, VPN/jaringan berbeda bisa mendapatkan kuota lain. Slot dipakai saat backend mulai mengirim video, meskipun pengguna membatalkan unduhan. Batas per IP tidak membatasi biaya global ataupun permintaan analisis yang tidak menghasilkan download.
+- Migrasi sudah diterapkan pada project Supabase aktif `All tools`; target Vercel untuk repo standalone belum terhubung, jadi belum terverifikasi di produksi. `npm run check` dan `npm test` berjalan pada GitHub Actions.
