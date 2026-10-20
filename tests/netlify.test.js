@@ -49,15 +49,27 @@ test('Netlify direct redirect is token-protected, per-instance limited, and send
     assert.equal((await download(request('/api/download?token=garbage'),visitor)).status,400);
     assert.equal((await download(request(url),{})).status,503);
     for(let n=0;n<4;n++){
-      const result=await download(request(url),visitor);
+      const signed=n===0?video:makeDownloadToken({
+        url:'https://cdn.example.org/reel'+n+'.mp4',filename:'reel'+n+'.mp4',kind:'video'
+      });
+      const route='/api/download?token='+encodeURIComponent(signed);
+      const result=await download(request(route),visitor);
       assert.equal(result.status,302);
-      assert.equal(result.headers.get('location'),'https://cdn.example.org/reel.mp4?token=provider');
+      assert.equal(result.headers.get('location'),n===0?'https://cdn.example.org/reel.mp4?token=provider':'https://cdn.example.org/reel'+n+'.mp4');
       assert.equal(result.headers.get('X-RateLimit-Remaining'),String(3-n));
       assert.equal(await result.text(),'');
+      // Repeated requests for the SAME signed token (preview, seek, save)
+      // must not spend another slot on the same warm serverless instance.
+      const repeat=await download(request(route),visitor);
+      assert.equal(repeat.status,302);
+      assert.equal(repeat.headers.get('X-RateLimit-Remaining'),String(3-n));
     }
-    const blocked=await download(request(url),visitor);
+    const fifthToken=makeDownloadToken({url:'https://cdn.example.org/fifth.mp4',kind:'video'});
+    const blocked=await download(request('/api/download?token='+encodeURIComponent(fifthToken)),visitor);
     assert.equal(blocked.status,429);
     assert.equal(blocked.headers.get('X-RateLimit-Remaining'),'0');
+    // Preview after exhausting the limit still works with a previously counted token.
+    assert.equal((await download(request(url),visitor)).status,302);
     const image=makeDownloadToken({url:'https://cdn.example.org/photo.jpg',kind:'image'});
     assert.equal((await download(request('/api/download?token='+encodeURIComponent(image)),visitor)).status,302);
     const audio=makeDownloadToken({url:'https://cdn.example.org/song.mp3',kind:'audio'});
