@@ -43,3 +43,68 @@ h1,h2,h3,p{margin-top:0}h1,h2,h3{font-family:var(--display);line-height:1.12}h2{
 @media(max-width:700px){.container{width:min(100% - 30px,520px)}.section-space{padding:65px 0}.announcement{height:30px}.announcement-inner{justify-content:center}.announcement-inner>span{font-size:10px;letter-spacing:1px}.announce-right{display:none}.nav-container{min-height:73px}.brand-mark{width:44px;height:44px;border-radius:13px}.brand-mark svg{width:24px;height:24px}.brand-label strong{font-size:27px}.brand-label small{font-size:9px}.hero{padding-top:57px;padding-bottom:45px}.hero h1{font-size:clamp(61px,13vw,84px);margin:24px 0}.text-spark{width:29px!important;height:29px!important;transform:translate(-4px,-13px)}.hero-description{font-size:14px}.hero-actions{gap:17px}.hero-actions .btn{padding:13px 18px}.hero-points{margin-top:27px;gap:10px 17px}.hero-points span{font-size:11px}.hero-visual{height:400px;width:425px;max-width:none;transform:translateX(-50%) scale(.78);transform-origin:top center;margin:23px 0 -67px;left:50%}.poster-shell{left:27px}.float-tag-top{left:-13px}.float-tag-bottom{right:-19px}.hero-deco{right:-4px}.section-lead h2,.section-head h2{font-size:34px}.section-lead{margin-bottom:33px}.downloader-card{padding:21px 18px;border-width:3px;border-radius:22px}.downloader-top{margin-bottom:22px}.downloader-icon{width:49px;height:49px;border-radius:13px}.downloader-icon svg{width:24px;height:24px}.downloader-top h3{font-size:21px}.downloader-top p{font-size:11px}.online-pill{display:none}.url-field{height:60px;padding:0 7px 0 12px;gap:7px}.url-field input{font-size:12px}.url-icon svg{width:19px;height:19px}.paste-button{padding:0 9px;font-size:12px}.paste-button span{display:none}.field-feedback{margin-bottom:22px}.form-bottom{display:block}.platform-quick{margin-bottom:18px;gap:6px}.platform-quick>span{width:100%;margin-bottom:2px}.chip{padding:7px 9px;font-size:11px}.btn-analyze{width:100%}.form-divider{font-size:9px;gap:8px;margin-top:29px}.result-empty{min-height:200px;padding:20px}.under-card{justify-content:center;font-size:11px;text-align:center}.result-summary{flex-wrap:wrap}.result-platform{margin-left:88px}.result-option{padding:10px;gap:8px}.format-icon{width:39px;height:39px}.download-choice{font-size:11px;padding:8px}.result-format b{font-size:14px}.platform-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.platform-card{min-height:171px;border-radius:16px}.platform-icon{width:50px;height:50px;font-size:28px;border-radius:13px;margin-bottom:13px}.platform-card h3{font-size:18px}.platform-card p{font-size:11px;padding-right:10px}.platform-arrow{right:11px;bottom:14px}.platform-doodle{display:none}.more-platforms{padding:16px;align-items:start}.more-platforms>div{grid-template-columns:1fr}.more-icon{display:none}.more-platforms b{font-size:15px}.more-platforms p{font-size:11px}.more-platforms a{font-size:11px;margin-top:3px}.steps-grid{grid-template-columns:1fr;gap:20px}.step-card{padding:20px}.step-graphic{height:144px;max-width:330px;margin:18px auto 22px}.step-card p{max-width:310px}.history-section{padding-bottom:53px}.history-panel{padding:20px 17px}.history-heading{align-items:flex-start;flex-direction:column}.history-heading h2{font-size:27px}.clear-history{align-self:flex-start;margin-bottom:4px}.faq-grid{grid-template-columns:1fr;gap:19px}.faq-art{display:none}.faq-intro h2{font-size:35px}.faq-intro p{margin-bottom:0}.faqs summary{font-size:14px;padding:17px 16px}.faqs details p{font-size:12px}.bottom-cta{padding:42px 0}.cta-inner{flex-direction:column;text-align:center;gap:20px}.cta-decoration{display:none}.cta-inner h2{font-size:33px}.footer-main{grid-template-columns:1fr 1fr;gap:26px;padding:40px 0 29px}.footer-brand{grid-column:span 2}.footer-brand p{margin:14px 0 0}.footer-bottom{flex-direction:column;text-align:center;font-size:10px}.result-loading{padding:16px}.result-loading b{font-size:17px}}
 @media(max-width:400px){.hero-visual{transform:translateX(-50%) scale(.69);margin-bottom:-106px}.hero h1{font-size:62px}.eyebrow{font-size:10px}.btn{font-size:14px}.url-field input{font-size:11px}.result-option{flex-wrap:wrap}.download-choice{margin-left:auto}.platform-card p{max-width:140px}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+
+
+/* Kawaii sky · gradient backgrounds and floating emoji accents.
+   Decoration stays non-interactive, behind readable content. */
+body {
+  background-color:#e4fcff;
+  background-image:
+    radial-gradient(circle at 12% 14%,rgba(255,209,235,.7),transparent 35%),
+    radial-gradient(circle at 88% 24%,rgba(197,249,255,.9),transparent 38%),
+    linear-gradient(145deg,#e6fbff 0%,#fceaf7 44%,#fff8df 72%,#e4fff4 100%);
+  background-size:cover;
+}
+.hero {
+  background:
+    radial-gradient(ellipse at 7% 26%,rgba(255,190,224,.55),transparent 37%),
+    radial-gradient(ellipse at 92% 69%,rgba(191,239,255,.65),transparent 39%),
+    linear-gradient(125deg,#dbfaff 0%,#fce8f6 47%,#fff3d7 76%,#defef1 100%);
+}
+.hero::after{background:linear-gradient(0deg,rgba(222,254,241,.84),transparent)}
+.download-section {
+  background:
+    radial-gradient(ellipse at 6% 22%,rgba(249,205,245,.48),transparent 36%),
+    linear-gradient(118deg,#dcfff5 0%,#e7faff 49%,#fff1e9 100%);
+}
+.platform-section {
+  background:
+    radial-gradient(ellipse at 91% 16%,rgba(211,241,255,.64),transparent 34%),
+    linear-gradient(135deg,#fff7e5 0%,#ffe9f3 50%,#e7faff 100%);
+}
+.how-section {background:linear-gradient(135deg,#e0fcfa 0%,#edf2ff 55%,#fae8f5 100%)}
+.history-section {background:linear-gradient(180deg,#fae8f5 0%,#e5fbfa 100%)}
+.faq-section {background:linear-gradient(135deg,#fff9e9 0%,#fceaf4 56%,#e5f9ff 100%)}
+.kawaii-floaters {
+  position:absolute;
+  inset:0;
+  z-index:0;
+  overflow:hidden;
+  pointer-events:none;
+  user-select:none;
+}
+.kawaii-floaters .emoji {
+  position:absolute;
+  top:var(--y);
+  left:var(--x);
+  font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif;
+  font-size:var(--size,40px);
+  line-height:1;
+  opacity:.55;
+  filter:drop-shadow(0 5px 3px rgba(72,41,29,.07));
+  transform-origin:center;
+  animation:nexora-emoji-float 7.5s ease-in-out infinite alternate;
+  animation-delay:var(--delay,0s);
+}
+.hero-grid,.download-section>.container,.platform-section>.container{position:relative;z-index:1}
+@keyframes nexora-emoji-float{
+  from{transform:translate3d(0,0,0) rotate(-9deg)}
+  to{transform:translate3d(5px,-15px,0) rotate(9deg)}
+}
+@media(max-width:760px){
+  .kawaii-floaters .emoji{font-size:calc(var(--size,40px) * .72);opacity:.32}
+  .kawaii-floaters .hide-on-mobile{display:none}
+}
+@media(prefers-reduced-motion:reduce){
+  .kawaii-floaters .emoji{animation:none}
+}
