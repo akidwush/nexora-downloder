@@ -93,45 +93,46 @@ test('reject HLS/DASH playlists and incomplete upstream responses',()=>{
 });
 
 
-test('video quota binds to IP across browsers, without persisting raw IPs',async()=>{
+test('memory quota limits four video downloads in 24h per IP, across browser agents',async()=>{
   const {getVisitorIp,ipBucket,ipQuotaKey,videoQuota,isVideoLimiterConfigured} = await import('../lib/quota.js');
-  const before={VERCEL:process.env.VERCEL,DOWNLOAD_SECRET:process.env.DOWNLOAD_SECRET,
-    SUPABASE_URL:process.env.SUPABASE_URL,SUPABASE_SECRET_KEY:process.env.SUPABASE_SECRET_KEY};
-  const oldFetch=globalThis.fetch;
+  const before={VERCEL:process.env.VERCEL,DOWNLOAD_SECRET:process.env.DOWNLOAD_SECRET};
   try {
     process.env.VERCEL='1';
     process.env.DOWNLOAD_SECRET='0123456789abcdef0123456789abcdef';
-    process.env.SUPABASE_URL='https://unit-test.supabase.co';
-    process.env.SUPABASE_SECRET_KEY='sb_secret_'+('x'.repeat(40));
     assert.equal(isVideoLimiterConfigured(),true);
-    const chrome={headers:{'x-vercel-forwarded-for':'1.2.3.4'},socket:{remoteAddress:'127.0.0.1'}};
-    const firefox={headers:{'x-vercel-forwarded-for':'1.2.3.4','user-agent':'Firefox'},socket:{remoteAddress:'127.0.0.2'}};
-    const other={headers:{'x-vercel-forwarded-for':'5.6.7.8'}};
-    assert.equal(getVisitorIp(chrome),'1.2.3.4');
+    const chrome={headers:{'x-vercel-forwarded-for':'198.51.100.4'},socket:{remoteAddress:'127.0.0.1'}};
+    const firefox={headers:{'x-vercel-forwarded-for':'198.51.100.4','user-agent':'Firefox'}};
+    const another={headers:{'x-vercel-forwarded-for':'198.51.100.5'}};
+    const now=1800000000000;
+    assert.equal(getVisitorIp(chrome),'198.51.100.4');
     assert.equal(ipQuotaKey(chrome),ipQuotaKey(firefox));
-    assert.notEqual(ipQuotaKey(chrome),ipQuotaKey(other));
-    assert.equal(ipQuotaKey(chrome).length,64);
+    assert.notEqual(ipQuotaKey(chrome),ipQuotaKey(another));
+    assert.match(ipQuotaKey(chrome),/^[0-9a-f]{64}$/);
+    assert.equal(videoQuota(chrome,false,now).remaining,4);
+    for(let n=1;n<=4;n++){
+      const result=videoQuota(n%2?chrome:firefox,true,now+n);
+      assert.equal(result.allowed,true);
+      assert.equal(result.used,n);
+      assert.equal(result.remaining,4-n);
+      assert.equal(result.persistent,false);
+    }
+    const fifth=videoQuota(firefox,true,now+5);
+    assert.equal(fifth.allowed,false);
+    assert.equal(fifth.used,4);
+    assert.equal(fifth.remaining,0);
+    assert.equal(videoQuota(another,true,now+6).remaining,3);
+    assert.equal(videoQuota(chrome,false,now+24*60*60*1000+2).remaining,3);
+    assert.equal(videoQuota(chrome,false,now+24*60*60*1000+5).remaining,4);
     assert.equal(ipBucket('2001:4860:abcd:1234:aaaa::1'),ipBucket('2001:4860:abcd:1234:bbbb::2'));
     assert.notEqual(ipBucket('::ffff:1.2.3.4'),ipBucket('::ffff:5.6.7.8'));
-    let consumed=false;
-    globalThis.fetch=async (url,opts)=>{
-      assert.match(url,/\/rpc\/nexora_downloader_quota$/);
-      assert.equal(opts.headers.apikey,process.env.SUPABASE_SECRET_KEY);
-      assert.equal(opts.headers.Authorization,undefined);
-      const body=JSON.parse(opts.body);
-      assert.equal(body.p_ip_hash,ipQuotaKey(chrome));
-      consumed=body.p_consume;
-      return {ok:true,json:async()=>({allowed:true,remaining:3,used:1,limit:4,resetAt:null})};
-    };
-    assert.equal((await videoQuota(firefox,true)).remaining,3);
-    assert.equal(consumed,true);
-    assert.throws(()=>getVisitorIp({headers:{'x-forwarded-for':'bogus'}}));
-    delete process.env.SUPABASE_SECRET_KEY;
-    await assert.rejects(videoQuota(chrome,true),/belum dikonfigurasi/);
+    assert.throws(()=>getVisitorIp({headers:{'x-vercel-forwarded-for':'bogus'}}));
+    delete process.env.DOWNLOAD_SECRET;
+    assert.equal(isVideoLimiterConfigured(),false);
+    assert.throws(()=>videoQuota(chrome,true),/DOWNLOAD_SECRET/);
   } finally {
-    globalThis.fetch=oldFetch;
-    for(const [key,value] of Object.entries(before)) {
-      if(value===undefined)delete process.env[key];else process.env[key]=value;
+    for(const [key,value] of Object.entries(before)){
+      if(value===undefined)delete process.env[key];
+      else process.env[key]=value;
     }
   }
 });
