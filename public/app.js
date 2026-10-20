@@ -107,8 +107,14 @@ function showResults(data) {
       item.append(fmt,details);
       if (entry.ready) {
         if (entry.downloadUrl?.startsWith('/api/download?token=')) {
-          const anchor=make('a','download-choice','Unduh');anchor.href=entry.downloadUrl;anchor.append(icon('download'));
-          anchor.addEventListener('click',()=>toast('Unduhan dimulai jika server media mengizinkan.'));
+          const redirectMode=data.deliveryMode==='redirect';
+          const anchor=make('a','download-choice',redirectMode?'Buka media':'Unduh');
+          anchor.href=entry.downloadUrl;
+          if(redirectMode){anchor.target='_blank';anchor.rel='noopener noreferrer';}
+          anchor.append(icon(redirectMode?'external':'download'));
+          anchor.addEventListener('click',()=>toast(data.deliveryMode==='redirect'
+            ? 'Media dibuka dari server sumber. Jika terbuka di browser, simpan manual.'
+            : 'Unduhan dimulai jika server media mengizinkan.'));
           item.append(anchor);
           const direct=safeHttps(entry.directUrl);
           if (direct && kind!=='video') {const fallback=make('a','download-choice secondary-link');fallback.href=direct;fallback.target='_blank';fallback.rel='noopener noreferrer';fallback.title='Buka tautan media langsung';fallback.append(icon('external'));fallback.setAttribute('aria-label',`Buka link langsung ${entry.type||''}`);item.append(fallback);}
@@ -121,9 +127,11 @@ function showResults(data) {
     });
   }
   wrap.append(options);
-  const notice=make('p','result-note',data.proxyEnabled
-    ? 'Mode proxy aktif (maks. 120 MB, batas waktu server berlaku). Jika tombol Unduh gagal, coba tombol tautan langsung. Hanya simpan media yang kamu berhak unduh.'
-    : 'Mode tautan langsung: browser akan membuka file dari provider. Untuk tombol Unduh lewat server, set DOWNLOAD_SECRET di Vercel. Format dan audio bergantung pada sumber.');
+  const notice=make('p','result-note',data.deliveryMode==='redirect'
+    ? 'Mode hemat Netlify: file video/audio/foto dibuka langsung dari server sumber, bukan diproxy Netlify. Media mungkin diputar atau ditolak oleh sumber; unduh manual jika tersedia. Batas 4 video/24 jam per IP hanya perkiraan per proses server.'
+    : data.proxyEnabled
+      ? 'Mode proxy aktif (maks. 120 MB, batas waktu server berlaku). Jika unduh gagal, coba tautan langsung untuk media non-video. Hanya simpan media yang kamu berhak unduh.'
+      : 'Mode tautan langsung: browser akan membuka file provider. Aktifkan DOWNLOAD_SECRET pada hosting untuk tombol video. Format dan audio bergantung pada sumber.');
   wrap.append(notice);
   if(data.truncated)wrap.append(make('p','result-note','Hanya 12 opsi pertama yang ditampilkan untuk menjaga respons server.'));
   target.append(wrap);
