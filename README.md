@@ -5,28 +5,32 @@ Website **standalone**, bukan bagian dari All Tools Nexora. Landing page dan dow
 ## Stack
 
 - HTML/CSS/JavaScript vanilla, frontend di `public/` (tanpa build frontend).
-- Vercel Functions Node.js: `api/analyze.js`, `api/download.js`, `api/health.js`.
+- Netlify Functions Node.js: `netlify/functions/analyze.mjs`, `netlify/functions/download.mjs`, `netlify/functions/health.mjs`, menggunakan utilitas `api/` dan `lib/`.
 - `@coflyn/mori` (lisensi GPL-3.0-or-later) menyediakan engine scraper. Repo asli: https://github.com/coflyn/Mori
 - Penyimpanan riwayat di `localStorage` perangkat masing-masing. Tidak ada database atau login.
 
-## Deploy ke Vercel (GitHub)
+## Deploy ke Netlify dari GitHub (disarankan)
 
-1. Ekstrak ZIP project. Unggah **isi folder** `all-downloader-nexora` (termasuk `public`, `api`, `lib`, `package.json`, dan `vercel.json`) ke **repository GitHub baru**. Jangan unggah ZIP saja sebagai satu berkas.
-2. Masuk ke https://vercel.com/new lalu **Import Git Repository** dan pilih repo baru tersebut.
-3. Framework Preset: **Other**. Root Directory: `./`. Biarkan Build Command default/kosong. Output Directory: **`public`** (biasanya terdeteksi otomatis; `vercel.json` juga mengaturnya).
-4. **Untuk download video:** set `DOWNLOAD_SECRET` di Vercel → Environment Variables dengan string acak minimal 32 karakter (`openssl rand -hex 32`). Tidak perlu database atau layanan lain. Deploy ulang setelah menambah env.
-5. Klik Deploy. Periksa homepage dan `https://DOMAIN-ANDA/api/health` (respons JSON). Coba link publik sendiri untuk tes provider.
+**Hosting Nexora Downloader terpisah dari Vercel All Tools Nexora.** Repo: https://github.com/akidwush/nexora-downloder
 
-**Batas video (mode kode saja):** limiter berusaha membatasi 4 download video per IP publik per 24 jam berjalan, dihitung dalam memori proses Node.js. Pada instance proses yang sama, berganti browser tidak menghapus kuota. Namun **pada Vercel serverless batas ini TIDAK dapat dijamin lintas instance, restart, redeploy, atau scale-out**. Endpoint video menggunakan token bertanda tangan; browser tidak menerima URL video langsung dari API analisis. Foto/audio tidak memakan slot video. Tanpa `DOWNLOAD_SECRET`, video dinonaktifkan sementara. Kuota tidak memerlukan penyimpanan eksternal.
+1. Buka https://app.netlify.com/start → **Import from Git** → GitHub → pilih `akidwush/nexora-downloder` dengan branch `main`.
+2. Netlify membaca `netlify.toml` otomatis. Base directory: root; build command: `npm run check && npm test`; publish directory: `public`; functions directory: `netlify/functions`.
+3. Pada **Site configuration → Environment variables** atur `DOWNLOAD_SECRET` dengan string acak minimal 32 karakter. Generate lokal dengan `openssl rand -hex 32`; jangan commit rahasia ke GitHub.
+4. Deploy. Buka `/api/health` dan pastikan ada `"hosting":"Netlify"`. Uji link publik milikmu dan periksa Netlify Functions logs.
+5. Setiap push ke `main` otomatis memicu deploy baru melalui Git integration.
 
+**Mode hemat bandwidth Netlify:** `/api/analyze` menggunakan Mori untuk mencari opsi media. `/api/download` memverifikasi token, menjalankan limiter IP per-instance, lalu mengirim **HTTP 302 redirect** ke URL HTTPS media asli. Byte video **tidak diteruskan oleh Netlify Functions**. Browser dapat membuka/streaming video dalam tab baru dan provider dapat menolak akses tanpa cookie/referer; unduh manual bila tersedia.
 
+**Batas 4 video/24 jam hanya best effort.** Kuota disimpan di memori masing-masing proses Netlify Function, tidak global dan tidak persisten. Mengganti browser dengan IP sama hanya berbagi hitungan ketika ditangani proses sama. Mengganti instance, cold start, restart, atau redeploy dapat mengulang kuota. Pengguna bisa memakai URL media langsung di luar situs setelah dialihkan. Ini bukan jaminan pencegahan penyalahgunaan atau pengendalian tagihan.
+
+Netlify membatasi respons streaming Functions maksimal 20 MB, jadi video besar harus memakai pengalihan ke sumber dan keberhasilannya bergantung pada sumber. Tanpa `DOWNLOAD_SECRET`, opsi video akan ditandai tidak siap; foto/audio masih dapat menggunakan URL langsung jika sumber mendukung.
 ## Menjalankan di lokal
 
-Node.js 20+:
+Node.js 20+ (Node.js 22 direkomendasikan):
 
 ```bash
 npm install
-npx vercel dev
+npm run dev
 ```
 
 Tes tanpa npm install (Node built-in):
@@ -61,7 +65,7 @@ LICENSE           # GNU GPL-3.0
 ## Limiter video kode saja (tanpa database)
 
 - `lib/quota.js` menyimpan maksimum 4 cap waktu per IP dalam memori **tiap proses**. IP disimpan sebagai HMAC-SHA256 menggunakan `DOWNLOAD_SECRET`, tidak sebagai alamat mentah. Alamat IPv6 digabung ke /64.
-- `/api/download` memeriksa kuota sebelum menghubungi sumber dan menghitung satu slot tepat sebelum streaming video. Video ke-5 pada proses yang sama mendapat HTTP 429.
+- Di Netlify, `/api/download` memeriksa kuota dan mengirim redirect 302 ke file asli (bukan streaming lewat Netlify); video ke-5 pada proses sama mendapat HTTP 429.
 - Pada serverless, **setiap instance/function terisolasi**. Tidak ada counter bersama antar-instance dan tidak ada penyimpanan tahan restart. Ini *best effort*, bukan enforcement global atau jaminan pengendalian biaya.
 - Browser berbeda dengan IP yang sama akan berbagi kuota **jika diarahkan ke proses yang sama**. Satu jaringan Wi-Fi dapat berbagi IP; pengguna yang mengganti jaringan/VPN bisa mendapat IP berbeda.
 - Tampilan hanya mengumumkan batas sementara dan tidak lagi mengklaim angka sisa kuota real-time, karena informasi tersebut tidak bisa akurat lintas instance.
@@ -70,17 +74,17 @@ LICENSE           # GNU GPL-3.0
 
 ## Batasan yang penting
 
-- **Belum menjamin setiap platform/URL berhasil.** Mori menggunakan parser dan sebagian endpoint pihak ketiga, yang bisa berubah atau memblokir serverless/IP Vercel.
+- **Belum menjamin setiap platform/URL berhasil.** Mori menggunakan parser dan sebagian endpoint pihak ketiga, yang bisa berubah atau memblokir serverless/IP Netlify.
 - **Video dan audio terpisah tidak di-*mux* otomatis**. Label jenis/kualitas berasal dari provider; tidak ada konversi MP3 atau jaminan audio di semua MP4.
 - Endpoint analisis memeriksa hingga 20 kandidat valid, memprioritaskan opsi yang siap diunduh, dan menampilkan hingga 12 opsi per link. Untuk playlist besar, adapter ini **belum** membuat job batch atau antrian terpisah.
-- Proxy file dibatasi 120 MB dan eksekusi serverless ~55 detik; limit aktual paket/region Vercel mungkin lebih ketat. Media besar sebaiknya dibuka lewat link langsung atau backend khusus.
+- Netlify memakai redirect langsung agar video besar tidak melewati batas streaming Functions 20 MB. Sebagian provider dapat menolak hotlink atau memutar video di browser.
 - Download yang memerlukan cookie login, DRM, atau hak akses privat tidak didukung. Hanya unduh konten yang Anda punya hak untuk menyimpan.
-- Untuk traffic publik besar, pasang **Vercel WAF/rate limiting**, observability dan monitor error per provider. Fungsi analisis saat ini tidak memakai rate limiter persisten.
+- Function analisis Netlify menerapkan throttle 12 permintaan per menit per IP. Monitor penggunaan credit, Functions logs, dan error provider; limit 24 jam masih per-instance.
 - Serverless tidak memiliki penyimpanan permanen. Riwayat berada di browser, bukan server.
 
 ## Keamanan dan lisensi
 
-Input divalidasi terhadap 16 domain platform, non-HTTPS dan host palsu ditolak. Proxy memakai token HMAC sementara, pemeriksaan DNS publik, batas panjang/ukuran, dan tidak meneruskan cookie dari scraper. Proxy mengunci koneksi TLS ke IP DNS yang sudah diperiksa, sehingga tidak mengulang resolusi DNS sesudah validasi. Ini pengamanan berlapis, bukan pengganti kebijakan outbound egress; untuk deployment skala besar tambahkan egress proxy dan rate limiter.
+Input divalidasi terhadap 16 domain platform, non-HTTPS dan host palsu ditolak. Mode Netlify memakai token HMAC sementara dan validasi URL HTTPS sebelum redirect tanpa meneruskan file, cookie, atau header scraper. Proxy Node lama memiliki pemeriksaan DNS publik dan pinning jika digunakan di hosting lain. Ini pengamanan berlapis, bukan pengganti kebijakan outbound egress; untuk deployment skala besar tambahkan egress proxy dan rate limiter.
 
 Package Mori diterbitkan sebagai **GPL-3.0-or-later**. Project ini menyertakan `LICENSE` GPL-3.0 dan atribusi di footer. Jika mendistribusikan kode, patuhi kewajiban GPL serta lisensi dependency lainnya.
 
@@ -90,7 +94,7 @@ Package Mori diterbitkan sebagai **GPL-3.0-or-later**. Project ini menyertakan `
 |---|---|
 | 404 pada homepage | Pastikan Output Directory `public` dan `public/index.html` tersedia. |
 | Function 500 | Periksa runtime Node.js 20+, `@coflyn/mori` terinstal dan file `bundle.js` ikut dalam paket Functions. |
-| Ekstraksi gagal | Pastikan link publik; coba platform lain, cek Vercel Runtime Logs dan endpoint provider. |
-| Video tidak bisa diunduh | Periksa `DOWNLOAD_SECRET` pada Vercel; cek `/api/health`. Jika limit proses lokal tercapai, tunggu 24 jam. |
-| File terlalu besar | Gunakan link langsung; backend Vercel terbatas untuk file besar. |
+| Ekstraksi gagal | Pastikan link publik; coba platform lain, cek Netlify Functions logs dan endpoint provider. |
+| Video gagal dibuka | Periksa `DOWNLOAD_SECRET` di Netlify dan `/api/health`. Provider dapat menolak direct link, dan kuota per-instance dapat sementara habis. |
+| File terbuka di tab baru | Ini adalah mode redirect Netlify. Simpan manual bila browser dan provider mengizinkan. |
 | Audio tidak muncul | Sumber tidak menawarkan audio gabungan, atau downloader Mori gagal mengekstraknya. |
