@@ -1,0 +1,19 @@
+{
+  "name": "all-downloader-nexora",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "All Downloader Nexora \u2014 Kawaii Arcade UI with Mori adapter for Vercel",
+  "scripts": {
+    "dev": "npx vercel dev",
+    "test": "node --test tests/*.test.js",
+    "check": "node --check api/analyze.js && node --check api/download.js && node --check api/health.js && node --check public/app.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@coflyn/mori": "1.0.1"
+  },
+  "license": "GPL-3.0-or-later"
+}

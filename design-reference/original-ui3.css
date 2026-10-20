@@ -1,0 +1,408 @@
+/* ==========================================================================
+   NEXORA KAWAII ARCADE UI MODE
+   Design System: Pastel Cyan, Cream Panels, Thick Brown Outlines, Glossy 3D
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Quicksand:wght@600;700&display=swap');
+
+:root {
+  --arcade-bg: #BDF3F5;
+  --arcade-bg-grad: linear-gradient(180deg, #BDF3F5 0%, #E2FCFD 100%);
+  --arcade-primary: #35C5D4;
+  --arcade-secondary: #FFF9EB;
+  --arcade-border: #48291D;
+  --arcade-yellow: #FFD53F;
+  --arcade-yellow-grad: linear-gradient(180deg, #FFE875 0%, #FFD53F 55%, #F5B800 100%);
+  --arcade-pink: #F47DB5;
+  --arcade-pink-grad: linear-gradient(180deg, #FF9ECE 0%, #F47DB5 100%);
+  --arcade-mint: #43D5A6;
+  --arcade-blue: #68D8F6;
+  --arcade-text: #43291F;
+  --arcade-text-muted: #7A5446;
+  --arcade-radius-lg: 24px;
+  --arcade-radius-md: 18px;
+  --arcade-radius-sm: 12px;
+  --arcade-radius-pill: 9999px;
+  --arcade-shadow-card: 0 6px 0 #48291D, 0 10px 20px rgba(72, 41, 29, 0.15);
+  --arcade-shadow-btn: 0 4px 0 #48291D, inset 0 2px 0 rgba(255, 255, 255, 0.8);
+  --arcade-shadow-btn-active: 0 0px 0 #48291D, inset 0 2px 4px rgba(72, 41, 29, 0.3);
+  --arcade-shadow-input: inset 0 3px 0 rgba(72, 41, 29, 0.08), 0 3px 0 #48291D;
+  --arcade-border-thick: 3px solid #48291D;
+}
+
+/* ==========================================================================
+   BASE & BACKGROUND (Subtle Decorative Dots & Sparkles)
+   ========================================================================== */
+html[data-theme="kawaii-arcade"],
+body.theme-kawaii-arcade {
+  background-color: var(--arcade-bg) !important;
+  background-image: 
+    radial-gradient(#35C5D4 1.5px, transparent 1.5px),
+    radial-gradient(#F47DB5 1.5px, #BDF3F5 1.5px) !important;
+  background-size: 48px 48px !important;
+  background-position: 0 0, 24px 24px !important;
+  background-attachment: fixed !important;
+  color: var(--arcade-text) !important;
+  font-family: 'Quicksand', 'Fredoka', -apple-system, BlinkMacSystemFont, sans-serif !important;
+  overflow-x: hidden !important;
+}
+
+html[data-theme="kawaii-arcade"] h1,
+html[data-theme="kawaii-arcade"] h2,
+html[data-theme="kawaii-arcade"] h3,
+html[data-theme="kawaii-arcade"] h4,
+html[data-theme="kawaii-arcade"] .brand,
+html[data-theme="kawaii-arcade"] .navbar-brand,
+html[data-theme="kawaii-arcade"] .card-title,
+html[data-theme="kawaii-arcade"] .tool-title {
+  font-family: 'Fredoka', sans-serif !important;
+  color: var(--arcade-text) !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.02em;
+}
+
+/* ==========================================================================
+   NAVBAR & HEADER
+   ========================================================================== */
+html[data-theme="kawaii-arcade"] header,
+html[data-theme="kawaii-arcade"] nav,
+html[data-theme="kawaii-arcade"] .navbar,
+html[data-theme="kawaii-arcade"] .topbar,
+html[data-theme="kawaii-arcade"] .app-header {
+  background: var(--arcade-primary) !important;
+  border-bottom: 4px solid var(--arcade-border) !important;
+  box-shadow: 0 4px 0 rgba(72, 41, 29, 0.25), inset 0 3px 0 rgba(255, 255, 255, 0.45) !important;
+  border-radius: 0 0 var(--arcade-radius-lg) var(--arcade-radius-lg) !important;
+  color: var(--arcade-secondary) !important;
+}
+
+html[data-theme="kawaii-arcade"] .navbar a,
+html[data-theme="kawaii-arcade"] header a,
+html[data-theme="kawaii-arcade"] .nav-link {
+  color: var(--arcade-text) !important;
+  background: var(--arcade-secondary) !important;
+  border: 2.5px solid var(--arcade-border) !important;
+  border-radius: var(--arcade-radius-pill) !important;
+  padding: 6px 14px !important;
+  margin: 2px 4px !important;
+  font-weight: 700 !important;
+  box-shadow: 0 3px 0 var(--arcade-border) !important;
+  transition: transform 0.12s ease, box-shadow 0.12s ease !important;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+html[data-theme="kawaii-arcade"] .navbar a:hover,
+html[data-theme="kawaii-arcade"] .nav-link:hover,
+html[data-theme="kawaii-arcade"] .nav-link.active {
+  background: var(--arcade-yellow) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 0 var(--arcade-border) !important;
+}
+
+/* ==========================================================================
+   SIDEBAR & NAVIGATION
+   ========================================================================== */
+html[data-theme="kawaii-arcade"] aside,
+html[data-theme="kawaii-arcade"] .sidebar,
+html[data-theme="kawaii-arcade"] .drawer,
+html[data-theme="kawaii-arcade"] .side-nav {
+  background: var(--arcade-secondary) !important;
+  border-right: 4px solid var(--arcade-border) !important;
+  box-shadow: 4px 0 0 rgba(72, 41, 29, 0.12) !important;
+  color: var(--arcade-text) !important;
+}
+
+html[data-theme="kawaii-arcade"] .sidebar-item,
+html[data-theme="kawaii-arcade"] aside a {
+  border-radius: var(--arcade-radius-md) !important;
+  color: var(--arcade-text) !important;
+  font-weight: 700 !important;
+  border: 2px solid transparent !important;
+  margin-bottom: 6px !important;
+  transition: all 0.15s ease !important;
+}
+
+html[data-theme="kawaii-arcade"] .sidebar-item:hover,
+html[data-theme="kawaii-arcade"] .sidebar-item.active,
+html[data-theme="kawaii-arcade"] aside a:hover {
+  background: var(--arcade-mint) !important;
+  border: 2.5px solid var(--arcade-border) !important;
+  box-shadow: 0 3px 0 var(--arcade-border) !important;
+  color: var(--arcade-text) !important;
+}
+
+/* ==========================================================================
+   CARDS, PANELS, DASHBOARD & TOOL CARDS
+   ========================================================================== */
+html[data-theme="kawaii-arcade"] .card,
+html[data-theme="kawaii-arcade"] .tool-card,
+html[data-theme="kawaii-arcade"] .panel,
+html[data-theme="kawaii-arcade"] .box,
+html[data-theme="kawaii-arcade"] .widget,
+html[data-theme="kawaii-arcade"] .dashboard-card,
+html[data-theme="kawaii-arcade"] section[class*="card"],
+html[data-theme="kawaii-arcade"] div[class*="card"] {
+  background: var(--arcade-secondary) !important;
+  border: var(--arcade-border-thick) !important;
+  border-radius: var(--arcade-radius-lg) !important;
+  box-shadow: var(--arcade-shadow-card) !important;
+  color: var(--arcade-text) !important;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.18s ease !important;
+}
+
+/* LED Indicator Ornament on Tool Cards */
+html[data-theme="kawaii-arcade"] .tool-card::before,
+html[data-theme="kawaii-arcade"] .card::before {
+  content: "";
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--arcade-mint);
+  border: 2px solid var(--arcade-border);
+  box-shadow: -16px 0 0 var(--arcade-pink), -16px 0 0 2px var(--arcade-border);
+  pointer-events: none;
+  z-index: 2;
+}
+
+html[data-theme="kawaii-arcade"] .tool-card:hover,
+html[data-theme="kawaii-arcade"] .card:hover {
+  transform: translateY(-4px) !important;
+  box-shadow: 0 10px 0 var(--arcade-border), 0 14px 24px rgba(72, 41, 29, 0.2) !important;
+}
+
+html[data-theme="kawaii-arcade"] .tool-card .icon,
+html[data-theme="kawaii-arcade"] .card-icon,
+html[data-theme="kawaii-arcade"] .tool-icon {
+  background: var(--arcade-pink-grad) !important;
+  border: 2.5px solid var(--arcade-border) !important;
+  border-radius: var(--arcade-radius-md) !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 3px 0 var(--arcade-border), inset 0 2px 0 rgba(255, 255, 255, 0.6) !important;
+}
+
+/* ==========================================================================
+   BUTTONS (Golden Gradient, Thick Outline, Pressed Animation, Glossy)
+   ========================================================================== */
+html[data-theme="kawaii-arcade"] button,
+html[data-theme="kawaii-arcade"] .btn,
+html[data-theme="kawaii-arcade"] input[type="button"],
+html[data-theme="kawaii-arcade"] input[type="submit"],
+html[data-theme="kawaii-arcade"] a.btn {
+  background: var(--arcade-yellow-grad) !important;
+  color: var(--arcade-text) !important;
+  border: var(--arcade-border-thick) !important;
+  border-radius: var(--arcade-radius-pill) !important;
+  font-family: 'Fredoka', sans-serif !important;
+  font-weight: 700 !important;
+  box-shadow: var(--arcade-shadow-btn) !important;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.7) !important;
+  cursor: pointer !important;
+  position: relative;
+  min-height: 42px;
+  padding: 8px 20px !important;
+  transition: transform 0.1s ease, box-shadow 0.1s ease, filter 0.15s ease !important;
+}
+
+html[data-theme="kawaii-arcade"] button:hover,
+html[data-theme="kawaii-arcade"] .btn:hover {
+  filter: brightness(1.05);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 0 var(--arcade-border), inset 0 2px 0 rgba(255, 255, 255, 0.9) !important;
+}
+
+html[data-theme="kawaii-arcade"] button:active,
+html[data-theme="kawaii-arcade"] .btn:active {
+  transform: translateY(4px) !important;
+  box-shadow: var(--arcade-shadow-btn-active) !important;
+}
+
+html[data-theme="kawaii-arcade"] .btn-secondary,
+html[data-theme="kawaii-arcade"] button.secondary {
+  background: linear-gradient(180deg, #8CE7FF 0%, #35C5D4 100%) !important;
+  color: var(--arcade-text) !important;
+}
+
+html[data-theme="kawaii-arcade"] .btn-danger,
+html[data-theme="kawaii-arcade"] button.danger {
+  background: var(--arcade-pink-grad) !important;
+  color: var(--arcade-text) !important;
+}
+
+/* ==========================================================================
+   INPUTS, SEARCH BAR, DROPDOWN & FORMS
+   ========================================================================== */
+html[data-theme="kawaii-arcade"] input[type="text"],
+html[data-theme="kawaii-arcade"] input[type="search"],
+html[data-theme="kawaii-arcade"] input[type="email"],
+html[data-theme="kawaii-arcade"] input[type="password"],
+html[data-theme="kawaii-arcade"] input[type="number"],
+html[data-theme="kawaii-arcade"] input[type="url"],
+html[data-theme="kawaii-arcade"] textarea,
+html[data-theme="kawaii-arcade"] select,
+html[data-theme="kawaii-arcade"] .form-control,
+html[data-theme="kawaii-arcade"] .search-input,
+html[data-theme="kawaii-arcade"] .search-bar input {
+  background-color: var(--arcade-secondary) !important;
+  color: var(--arcade-text) !important;
+  border: var(--arcade-border-thick) !important;
+  border-radius: var(--arcade-radius-md) !important;
+  box-shadow: var(--arcade-shadow-input) !important;
+  padding: 10px 16px !important;
+  font-weight: 600 !important;
+  font-family: 'Quicksand', sans-serif !important;
+  transition: all 0.2s ease !important;
+}
+
+html[data-theme="kawaii-arcade"] input:focus,
+html[data-theme="kawaii-arcade"] textarea:focus,
+html[data-theme="kawaii-arcade"] select:focus {
+  outline: none !important;
+  background-color: #FFFFFF !important;
+  border-color: var(--arcade-border) !important;
+  box-shadow: 0 0 0 4px var(--arcade-pink), 0 4px 0 var(--arcade-border) !important;
+  transform: translateY(-1px);
+}
+
+html[data-theme="kawaii-arcade"] ::placeholder {
+  color: var(--arcade-text-muted) !important;
+  opacity: 0.75 !important;
+}
+
+/* ==========================================================================
+   MODALS, TOASTS, TABS, FOOTER & LOADING STATES
+   ========================================================================== */
+html[data-theme="kawaii-arcade"] .modal-content,
+html[data-theme="kawaii-arcade"] .dialog,
+html[data-theme="kawaii-arcade"] [role="dialog"] {
+  background: var(--arcade-secondary) !important;
+  border: 4px solid var(--arcade-border) !important;
+  border-radius: var(--arcade-radius-lg) !important;
+  box-shadow: 0 10px 0 var(--arcade-border), 0 20px 40px rgba(72, 41, 29, 0.35) !important;
+  color: var(--arcade-text) !important;
+}
+
+html[data-theme="kawaii-arcade"] .toast,
+html[data-theme="kawaii-arcade"] .notification,
+html[data-theme="kawaii-arcade"] [role="alert"] {
+  background: var(--arcade-yellow) !important;
+  color: var(--arcade-text) !important;
+  border: var(--arcade-border-thick) !important;
+  border-radius: var(--arcade-radius-md) !important;
+  box-shadow: 0 5px 0 var(--arcade-border) !important;
+  font-weight: 700 !important;
+}
+
+html[data-theme="kawaii-arcade"] .tabs,
+html[data-theme="kawaii-arcade"] .nav-tabs,
+html[data-theme="kawaii-arcade"] [role="tablist"] {
+  background: rgba(255, 249, 235, 0.7) !important;
+  padding: 6px !important;
+  border-radius: var(--arcade-radius-pill) !important;
+  border: var(--arcade-border-thick) !important;
+}
+
+html[data-theme="kawaii-arcade"] .tab,
+html[data-theme="kawaii-arcade"] [role="tab"] {
+  border-radius: var(--arcade-radius-pill) !important;
+  color: var(--arcade-text) !important;
+  font-weight: 700 !important;
+}
+
+html[data-theme="kawaii-arcade"] .tab.active,
+html[data-theme="kawaii-arcade"] [role="tab"][aria-selected="true"] {
+  background: var(--arcade-pink) !important;
+  color: #FFFFFF !important;
+  border: 2px solid var(--arcade-border) !important;
+  box-shadow: 0 2px 0 var(--arcade-border) !important;
+}
+
+html[data-theme="kawaii-arcade"] footer,
+html[data-theme="kawaii-arcade"] .footer {
+  background: var(--arcade-secondary) !important;
+  border-top: 4px solid var(--arcade-border) !important;
+  color: var(--arcade-text) !important;
+  border-radius: var(--arcade-radius-lg) var(--arcade-radius-lg) 0 0 !important;
+  margin-top: 40px;
+}
+
+/* Loading Spinner Arcade Style */
+html[data-theme="kawaii-arcade"] .spinner,
+html[data-theme="kawaii-arcade"] .loader,
+html[data-theme="kawaii-arcade"] .loading {
+  border-color: var(--arcade-secondary) !important;
+  border-top-color: var(--arcade-pink) !important;
+  border-right-color: var(--arcade-yellow) !important;
+  border-width: 4px !important;
+}
+
+/* ==========================================================================
+   FLOATING / INTEGRATED THEME SWITCHER WIDGET
+   ========================================================================== */
+.nexora-arcade-switcher {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #FFF9EB;
+  color: #43291F;
+  border: 3px solid #48291D;
+  border-radius: 9999px;
+  padding: 6px 12px;
+  box-shadow: 0 5px 0 #48291D, 0 8px 16px rgba(0,0,0,0.2);
+  font-family: 'Fredoka', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.nexora-arcade-switcher select {
+  background: #FFD53F !important;
+  color: #43291F !important;
+  border: 2px solid #48291D !important;
+  border-radius: 9999px !important;
+  padding: 4px 10px !important;
+  font-weight: 700 !important;
+  cursor: pointer;
+  box-shadow: 0 2px 0 #48291D !important;
+}
+
+/* ==========================================================================
+   RESPONSIVE DESIGN (Mobile & Android Priority)
+   ========================================================================== */
+@media (max-width: 768px) {
+  html[data-theme="kawaii-arcade"],
+  body.theme-kawaii-arcade {
+    overflow-x: hidden !important;
+  }
+
+  html[data-theme="kawaii-arcade"] .card,
+  html[data-theme="kawaii-arcade"] .tool-card,
+  html[data-theme="kawaii-arcade"] .panel {
+    border-radius: var(--arcade-radius-md) !important;
+    margin-left: auto;
+    margin-right: auto;
+    max-width: 100%;
+  }
+
+  html[data-theme="kawaii-arcade"] button,
+  html[data-theme="kawaii-arcade"] .btn {
+    min-height: 46px; /* Touch-friendly target for Android */
+    font-size: 15px !important;
+  }
+
+  .nexora-arcade-switcher {
+    bottom: 14px;
+    right: 14px;
+    padding: 5px 10px;
+    font-size: 12px;
+  }
+}
