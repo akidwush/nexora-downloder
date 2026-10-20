@@ -15,6 +15,14 @@ test('reject malicious URL host, scheme and credential',()=>{
     assert.throws(()=>validateSource(url),url);
   }
 });
+test('skip empty media placeholders before limiting options',()=>{
+  const downloads = Array.from({length:25},()=>({type:'MP4'}));
+  downloads.push({type:'WebM',quality:'720p',url:'https://cdn.example.org/video.webm'});
+  const result = normalizeMedia({downloads},'youtube');
+  assert.equal(result.options.length,1);
+  assert.equal(result.options[0].index,25);
+});
+
 test('classify media',()=>{
   assert.equal(classifyMedia('MP3','320kbps'),'audio');
   assert.equal(classifyMedia('Photo HD',''),'image');
@@ -42,10 +50,10 @@ test('signed token accepts valid, rejects tampered',()=>{
 });
 
 test('reject private, reserved, and mixed DNS answers before the proxy connects',()=>{
-  for(const address of ['127.0.0.1','10.1.2.3','169.254.169.254','172.20.0.1','192.168.1.1','192.0.0.8','192.88.99.1','198.18.0.1','203.0.113.9']) {
+  for(const address of ['127.0.0.1','10.1.2.3','169.254.169.254','172.20.0.1','192.168.1.1','192.0.0.0','192.0.0.8','192.0.0.255','192.0.2.5','192.88.99.1','198.18.0.1','203.0.113.9']) {
     assert.throws(()=>assertPublicAddresses([{address,family:4}]),address);
   }
-  for(const address of ['::1','fc00::1','fe80::1','::ffff:127.0.0.1','2001:db8::1']) {
+  for(const address of ['::1','fc00::1','fe80::1','::ffff:127.0.0.1','2001:db8::1','2002::1','2001::1']) {
     assert.throws(()=>assertPublicAddresses([{address,family:6}]),address);
   }
   assert.doesNotThrow(()=>assertPublicAddresses([{address:'8.8.8.8',family:4}]));
