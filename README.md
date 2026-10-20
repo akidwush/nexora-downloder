@@ -14,10 +14,10 @@ Website **standalone**, bukan bagian dari All Tools Nexora. Landing page dan dow
 1. Ekstrak ZIP project. Unggah **isi folder** `all-downloader-nexora` (termasuk `public`, `api`, `lib`, `package.json`, dan `vercel.json`) ke **repository GitHub baru**. Jangan unggah ZIP saja sebagai satu berkas.
 2. Masuk ke https://vercel.com/new lalu **Import Git Repository** dan pilih repo baru tersebut.
 3. Framework Preset: **Other**. Root Directory: `./`. Biarkan Build Command default/kosong. Output Directory: **`public`** (biasanya terdeteksi otomatis; `vercel.json` juga mengaturnya).
-4. (Direkomendasikan) Di Project Settings → Environment Variables, tambah `DOWNLOAD_SECRET` dengan string acak **minimal 32 karakter**. Buat lokal dengan `openssl rand -hex 32`. Pilih Production / Preview sesuai kebutuhan. Deploy ulang sesudah menambah env.
+4. **Wajib untuk download video:** Di Vercel → Environment Variables isi `DOWNLOAD_SECRET` (acak minimal 32 karakter), `SUPABASE_URL` (lihat `.env.example`) dan `SUPABASE_SECRET_KEY` (kunci *secret* dari Supabase, **hanya server-side**). Migrasi SQL kuota sudah diterapkan ke project Supabase aktif. Deploy ulang setelah menambah env.
 5. Klik Deploy. Periksa homepage dan `https://DOMAIN-ANDA/api/health` (respons JSON). Coba link publik sendiri untuk tes provider.
 
-Jika `DOWNLOAD_SECRET` tidak diisi, analisis link tetap disiapkan, tetapi website hanya menyediakan tautan langsung ke file provider (tombol **Buka media**). Browser atau provider dapat membuka konten alih-alih mengunduh otomatis. Token proxy berlaku 10 menit; ulangi analisis jika habis.
+**Batas video:** 4 unduhan video per IP publik dalam 24 jam berjalan (*rolling window*), berlaku lintas browser dengan IP yang sama, disimpan di Supabase melalui HMAC IP (tidak menyimpan IP mentah). Setiap percobaan unduhan video yang diterima dari provider dan diteruskan server menghabiskan satu slot. Saat kuota habis, API download mengembalikan HTTP 429. Foto/audio tidak memakai slot video. Satu IP bersama (misalnya Wi-Fi sekolah) berarti kuota bersama; VPN atau jaringan/IP berbeda tidak bisa diidentifikasi sebagai orang yang sama. Tanpa ketiga environment variables, **opsi video dinonaktifkan** supaya tidak ada jalur tanpa batas. Token proxy berlaku 10 menit.
 
 ## Menjalankan di lokal
 
@@ -57,6 +57,12 @@ design-reference/original-ui3.css  # referensi CSS user
 LICENSE           # GNU GPL-3.0
 ```
 
+## Limiter lintas browser
+
+Endpoint `GET /api/quota` menampilkan sisa slot untuk IP pengunjung tanpa mengekspos alamat IP. `/api/download` menghabiskan satu slot **hanya untuk video**, sebelum streaming video dimulai. `/api/analyze` tidak memberikan tautan video langsung yang dapat melewati quota. Quota disimpan persisten dan diperbarui secara atomik melalui fungsi `nexora_downloader_quota` di Supabase. File migrasi: `supabase/migrations/20261020100000_nexora_downloader_ip_video_quota.sql`.
+
+Pengaturan awal wajib: `DOWNLOAD_SECRET`, `SUPABASE_URL`, dan `SUPABASE_SECRET_KEY` pada Vercel (jangan pernah commit nilai secret atau kirim ke browser). Jika Supabase gagal, download video **ditolak sementara**. Batasan ini melindungi penggunaan normal, tetapi tidak dapat mengidentifikasi pengguna saat IP berubah atau membatasi unduhan dari URL provider yang diperoleh di luar situs. Empat video berukuran besar untuk tiap IP masih memakai bandwidth proxy Vercel; ini bukan pengganti pembatasan global dan pengelolaan biaya.
+
 ## Batasan yang penting
 
 - **Belum menjamin setiap platform/URL berhasil.** Mori menggunakan parser dan sebagian endpoint pihak ketiga, yang bisa berubah atau memblokir serverless/IP Vercel.
@@ -80,6 +86,6 @@ Package Mori diterbitkan sebagai **GPL-3.0-or-later**. Project ini menyertakan `
 | 404 pada homepage | Pastikan Output Directory `public` dan `public/index.html` tersedia. |
 | Function 500 | Periksa runtime Node.js 20+, `@coflyn/mori` terinstal dan file `bundle.js` ikut dalam paket Functions. |
 | Ekstraksi gagal | Pastikan link publik; coba platform lain, cek Vercel Runtime Logs dan endpoint provider. |
-| Tombol unduh membuka halaman | Isi `DOWNLOAD_SECRET` untuk mengaktifkan proxy, atau unduh manual dari tab provider. |
+| Video tidak bisa diunduh | Periksa `DOWNLOAD_SECRET`, `SUPABASE_URL` dan `SUPABASE_SECRET_KEY` pada deployment Vercel; cek `/api/health` dan `/api/quota`. |
 | File terlalu besar | Gunakan link langsung; backend Vercel terbatas untuk file besar. |
 | Audio tidak muncul | Sumber tidak menawarkan audio gabungan, atau downloader Mori gagal mengekstraknya. |
