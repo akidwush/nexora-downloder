@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
-import analyze, {withTimeout} from '../api/analyze.js';
+import analyze, {withTimeout, extensionForMedia} from '../api/analyze.js';
 import download from '../api/download.js';
 import health from '../api/health.js';
 
@@ -26,6 +26,17 @@ test('analyze validates source safely without live scraping',async()=>{
   assert.equal(res.statusCode,400);
   assert.ok(res.output.error);
 });
+test('media extensions match direct URLs or provider labels',()=>{
+  assert.equal(extensionForMedia({kind:'video',type:'HD'},'https://cdn.example.org/file.webm?token=123'),'webm');
+  assert.equal(extensionForMedia({kind:'audio',type:'Audio'},'https://cdn.example.org/clip.ogg'),'ogg');
+  assert.equal(extensionForMedia({kind:'image',type:'Photo PNG'},'https://cdn.example.org/file'),'png');
+  assert.equal(extensionForMedia({kind:'video',type:'MP4'},'https://cdn.example.org/v'),'mp4');
+});
+test('analyze rejects oversized bodies before provider import',async()=>{
+  const res=mockRes();
+  await analyze({method:'POST',headers:{'content-length':'5000'},body:{url:'https://vt.tiktok.com/test'}},res);
+  assert.equal(res.statusCode,413);
+});
 test('proxy requires configured secret',async()=>{
   delete process.env.DOWNLOAD_SECRET;
   const res=mockRes();await download({method:'GET',query:{token:'garbage'}},res);
@@ -42,6 +53,9 @@ test('static web paths and deployment settings exist',()=>{
   const html=fs.readFileSync(path.join(root,'public/index.html'),'utf8');
   assert.match(html,/href="\/styles\.css"/);
   assert.match(html,/src="\/app\.js"/);
+  const app=fs.readFileSync(path.join(root,'public/app.js'),'utf8');
+  assert.match(app,/youtube-nocookie\.com/);
+  assert.match(app,/selectPlatform\(detected,\{focus:false\}\)/);
   const config=JSON.parse(fs.readFileSync(path.join(root,'vercel.json'),'utf8'));
   assert.equal(config.outputDirectory,'public');
   for(const file of ['styles.css','app.js','favicon.svg']) assert.ok(fs.existsSync(path.join(root,'public',file)));
