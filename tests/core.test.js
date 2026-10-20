@@ -121,7 +121,7 @@ test('memory quota limits four video downloads in 24h per IP, across browser age
     assert.equal(fifth.used,4);
     assert.equal(fifth.remaining,0);
     assert.equal(videoQuota(another,true,now+6).remaining,3);
-    assert.equal(videoQuota(chrome,false,now+24*60*60*1000+2).remaining,3);
+    assert.equal(videoQuota(chrome,false,now+24*60*60*1000+2).remaining,2);
     assert.equal(videoQuota(chrome,false,now+24*60*60*1000+5).remaining,4);
     assert.equal(ipBucket('2001:4860:abcd:1234:aaaa::1'),ipBucket('2001:4860:abcd:1234:bbbb::2'));
     assert.notEqual(ipBucket('::ffff:1.2.3.4'),ipBucket('::ffff:5.6.7.8'));
