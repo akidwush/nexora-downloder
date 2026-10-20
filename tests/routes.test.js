@@ -103,3 +103,17 @@ test('code-only limiter has no external database endpoint or API calls',()=>{
   assert.match(downloadSource,/videoQuota\(req,false\)/);
   assert.match(downloadSource,/videoQuota\(req,true\)/);
 });
+
+test('mobile results remain readable without giant grid tracks or one-letter titles',()=>{
+  const root=fileURLToPath(new URL('../',import.meta.url));
+  const css=fs.readFileSync(path.join(root,'public/styles.css'),'utf8');
+  const html=fs.readFileSync(path.join(root,'public/index.html'),'utf8');
+  const app=fs.readFileSync(path.join(root,'public/app.js'),'utf8');
+  assert.match(html,/name="viewport" content="width=device-width, initial-scale=1"/);
+  assert.match(css,/\.hero-grid\{grid-template-columns:minmax\(0,1fr\)\}/);
+  assert.match(css,/\.result-summary\{\s*display:grid;\s*grid-template-columns:58px minmax\(0,1fr\)/);
+  assert.match(css,/\.result-meta b\{[\s\S]*?-webkit-line-clamp:2;/);
+  assert.match(css,/html,body\{max-width:100%;overflow-x:clip\}/);
+  // Provider-supplied titles are inserted as text, never raw HTML.
+  assert.match(app,/make\('b','',data\.title \|\| 'Media tanpa judul'\)/);
+});
