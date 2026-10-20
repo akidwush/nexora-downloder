@@ -14,10 +14,11 @@ Website **standalone**, bukan bagian dari All Tools Nexora. Landing page dan dow
 1. Ekstrak ZIP project. Unggah **isi folder** `all-downloader-nexora` (termasuk `public`, `api`, `lib`, `package.json`, dan `vercel.json`) ke **repository GitHub baru**. Jangan unggah ZIP saja sebagai satu berkas.
 2. Masuk ke https://vercel.com/new lalu **Import Git Repository** dan pilih repo baru tersebut.
 3. Framework Preset: **Other**. Root Directory: `./`. Biarkan Build Command default/kosong. Output Directory: **`public`** (biasanya terdeteksi otomatis; `vercel.json` juga mengaturnya).
-4. **Wajib untuk download video:** Siapkan database **khusus Nexora Downloader, bukan Supabase All Tools Nexora**. Terapkan migrasi `supabase/migrations/20261020100000_nexora_downloader_ip_video_quota.sql` pada project khusus tersebut. Di Vercel → Environment Variables isi `DOWNLOAD_SECRET` (acak minimal 32 karakter), `SUPABASE_URL` (alamat project Nexora Downloader sendiri, lihat `.env.example`) dan `SUPABASE_SECRET_KEY` (kunci *secret* dari project tersebut, **hanya server-side**). Deploy ulang setelah menambah env.
+4. **Untuk download video:** set `DOWNLOAD_SECRET` di Vercel → Environment Variables dengan string acak minimal 32 karakter (`openssl rand -hex 32`). Tidak perlu database atau layanan lain. Deploy ulang setelah menambah env.
 5. Klik Deploy. Periksa homepage dan `https://DOMAIN-ANDA/api/health` (respons JSON). Coba link publik sendiri untuk tes provider.
 
-**Batas video:** 4 unduhan video per IP publik dalam 24 jam berjalan (*rolling window*), berlaku lintas browser dengan IP yang sama, disimpan di Supabase melalui HMAC IP (tidak menyimpan IP mentah). Setiap percobaan unduhan video yang diterima dari provider dan diteruskan server menghabiskan satu slot. Saat kuota habis, API download mengembalikan HTTP 429. Foto/audio tidak memakai slot video. Satu IP bersama (misalnya Wi-Fi sekolah) berarti kuota bersama; VPN atau jaringan/IP berbeda tidak bisa diidentifikasi sebagai orang yang sama. Tanpa ketiga environment variables, **opsi video dinonaktifkan** supaya tidak ada jalur tanpa batas. Token proxy berlaku 10 menit.
+**Batas video (mode kode saja):** limiter berusaha membatasi 4 download video per IP publik per 24 jam berjalan, dihitung dalam memori proses Node.js. Pada instance proses yang sama, berganti browser tidak menghapus kuota. Namun **pada Vercel serverless batas ini TIDAK dapat dijamin lintas instance, restart, redeploy, atau scale-out**. Endpoint video menggunakan token bertanda tangan; browser tidak menerima URL video langsung dari API analisis. Foto/audio tidak memakan slot video. Tanpa `DOWNLOAD_SECRET`, video dinonaktifkan sementara. Kuota tidak memerlukan penyimpanan eksternal.
+
 
 ## Menjalankan di lokal
 
@@ -57,15 +58,15 @@ design-reference/original-ui3.css  # referensi CSS user
 LICENSE           # GNU GPL-3.0
 ```
 
-## Pemisahan project
+## Limiter video kode saja (tanpa database)
 
-Repository ini adalah layanan standalone dan **tidak memakai database All Tools Nexora**. Migrasi kuota tersedia sebagai berkas, tetapi harus dijalankan di project Supabase baru yang didedikasikan khusus untuk Nexora Downloader. Penggunaan project lain, bahkan bila masih satu pemilik, tidak direkomendasikan. Jika belum ada project khusus dan environment variables terkait belum dikonfigurasi, video tetap **fail closed** untuk mencegah kuota yang bisa dilewati.
-
-## Limiter lintas browser
-
-Endpoint `GET /api/quota` menampilkan sisa slot untuk IP pengunjung tanpa mengekspos alamat IP. `/api/download` menghabiskan satu slot **hanya untuk video**, sebelum streaming video dimulai. `/api/analyze` tidak memberikan tautan video langsung yang dapat melewati quota. Quota disimpan persisten dan diperbarui secara atomik melalui fungsi `nexora_downloader_quota` di Supabase. File migrasi: `supabase/migrations/20261020100000_nexora_downloader_ip_video_quota.sql`.
-
-Pengaturan awal wajib: `DOWNLOAD_SECRET`, `SUPABASE_URL`, dan `SUPABASE_SECRET_KEY` pada Vercel (jangan pernah commit nilai secret atau kirim ke browser). **Jangan gunakan URL atau kunci Supabase milik All Tools Nexora; Nexora Downloader harus menggunakan project database yang terpisah.** Jika Supabase gagal, download video **ditolak sementara**. Batasan ini melindungi penggunaan normal, tetapi tidak dapat mengidentifikasi pengguna saat IP berubah atau membatasi unduhan dari URL provider yang diperoleh di luar situs. Empat video berukuran besar untuk tiap IP masih memakai bandwidth proxy Vercel; ini bukan pengganti pembatasan global dan pengelolaan biaya.
+- `lib/quota.js` menyimpan maksimum 4 cap waktu per IP dalam memori **tiap proses**. IP disimpan sebagai HMAC-SHA256 menggunakan `DOWNLOAD_SECRET`, tidak sebagai alamat mentah. Alamat IPv6 digabung ke /64.
+- `/api/download` memeriksa kuota sebelum menghubungi sumber dan menghitung satu slot tepat sebelum streaming video. Video ke-5 pada proses yang sama mendapat HTTP 429.
+- Pada serverless, **setiap instance/function terisolasi**. Tidak ada counter bersama antar-instance dan tidak ada penyimpanan tahan restart. Ini *best effort*, bukan enforcement global atau jaminan pengendalian biaya.
+- Browser berbeda dengan IP yang sama akan berbagi kuota **jika diarahkan ke proses yang sama**. Satu jaringan Wi-Fi dapat berbagi IP; pengguna yang mengganti jaringan/VPN bisa mendapat IP berbeda.
+- Tampilan hanya mengumumkan batas sementara dan tidak lagi mengklaim angka sisa kuota real-time, karena informasi tersebut tidak bisa akurat lintas instance.
+- Tetap diperlukan `DOWNLOAD_SECRET` untuk memverifikasi token unduhan. Jangan taruh secret di frontend atau GitHub.
+- Untuk kuota yang **benar-benar konsisten dan tahan restart** diperlukan penyimpanan/limiter bersama; itu sengaja **tidak dipasang** sesuai permintaan tanpa layanan tambahan.
 
 ## Batasan yang penting
 
@@ -90,6 +91,6 @@ Package Mori diterbitkan sebagai **GPL-3.0-or-later**. Project ini menyertakan `
 | 404 pada homepage | Pastikan Output Directory `public` dan `public/index.html` tersedia. |
 | Function 500 | Periksa runtime Node.js 20+, `@coflyn/mori` terinstal dan file `bundle.js` ikut dalam paket Functions. |
 | Ekstraksi gagal | Pastikan link publik; coba platform lain, cek Vercel Runtime Logs dan endpoint provider. |
-| Video tidak bisa diunduh | Periksa `DOWNLOAD_SECRET`, `SUPABASE_URL` dan `SUPABASE_SECRET_KEY` pada deployment Vercel; cek `/api/health` dan `/api/quota`. |
+| Video tidak bisa diunduh | Periksa `DOWNLOAD_SECRET` pada Vercel; cek `/api/health`. Jika limit proses lokal tercapai, tunggu 24 jam. |
 | File terlalu besar | Gunakan link langsung; backend Vercel terbatas untuk file besar. |
 | Audio tidak muncul | Sumber tidak menawarkan audio gabungan, atau downloader Mori gagal mengekstraknya. |
