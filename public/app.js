@@ -81,25 +81,6 @@ function showError(message) {
 function safeHttps(value) {
   try { const url=new URL(value); return url.protocol === 'https:' ? url.href : ''; } catch {return '';}
 }
-async function refreshVideoQuota() {
-  const node = $('#video-quota');
-  if (!node) return;
-  try {
-    const response = await fetch('/api/quota',{cache:'no-store'});
-    if (!response.ok) throw new Error('Status kuota belum tersedia');
-    const data = await response.json();
-    if (!Number.isInteger(data.remaining) || data.limit !== 4) throw new Error('Invalid quota');
-    const reset = data.resetAt ? new Date(data.resetAt).toLocaleString('id-ID',{dateStyle:'medium',timeStyle:'short'}) : '';
-    node.textContent = data.remaining > 0
-      ? `🎬 Sisa kuota video: ${data.remaining}/4 unduhan per IP dalam 24 jam.`
-      : `🎬 Kuota video habis (0/4). Slot berikutnya pulih: ${reset}.`;
-    node.classList.toggle('quota-empty',data.remaining===0);
-  } catch {
-    node.textContent='🎬 Limit 4 video per 24 jam per IP — status kuota belum tersedia.';
-    node.classList.remove('quota-empty');
-  }
-}
-
 function showResults(data) {
   const target = $('#result-area'); target.replaceChildren();
   const wrap = make('div','result-ready');
@@ -127,10 +108,7 @@ function showResults(data) {
       if (entry.ready) {
         if (entry.downloadUrl?.startsWith('/api/download?token=')) {
           const anchor=make('a','download-choice','Unduh');anchor.href=entry.downloadUrl;anchor.append(icon('download'));
-          anchor.addEventListener('click',()=>{
-            toast('Unduhan dimulai jika server media mengizinkan.');
-            if (kind==='video') setTimeout(refreshVideoQuota,1800);
-          });
+          anchor.addEventListener('click',()=>toast('Unduhan dimulai jika server media mengizinkan.'));
           item.append(anchor);
           const direct=safeHttps(entry.directUrl);
           if (direct && kind!=='video') {const fallback=make('a','download-choice secondary-link');fallback.href=direct;fallback.target='_blank';fallback.rel='noopener noreferrer';fallback.title='Buka tautan media langsung';fallback.append(icon('external'));fallback.setAttribute('aria-label',`Buka link langsung ${entry.type||''}`);item.append(fallback);}
@@ -212,5 +190,5 @@ $$('[data-platform]').forEach(btn=>{btn.addEventListener('click',()=>selectPlatf
 $('#clear-history').addEventListener('click',()=>{try{localStorage.removeItem(historyKey);}catch{}renderHistory();toast('Riwayat lokal sudah dihapus.');});
 $('#mobile-menu-btn').addEventListener('click',()=>{const menu=$('#mobile-nav');const open=menu.hidden;menu.hidden=!open;$('#mobile-menu-btn').setAttribute('aria-expanded',String(open));$('#mobile-menu-btn').replaceChildren(icon(open?'close':'menu'));});
 $$('#mobile-nav a').forEach(link=>link.addEventListener('click',()=>{$('#mobile-nav').hidden=true;$('#mobile-menu-btn').setAttribute('aria-expanded','false');$('#mobile-menu-btn').replaceChildren(icon('menu'));}));
-$('#year').textContent=String(new Date().getFullYear());renderHistory();refreshVideoQuota();
-window.addEventListener('focus',refreshVideoQuota);
+$('#year').textContent=String(new Date().getFullYear());renderHistory();
+
