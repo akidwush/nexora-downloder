@@ -14,22 +14,31 @@ const suffix = (item) => {
   if (item.kind === 'image') return /webp/.test(t) ? 'webp' : /png/.test(t) ? 'png' : 'jpg';
   return 'mp4';
 };
-const sleepTimeout = (ms) => new Promise((_,reject)=>setTimeout(()=>reject(new Error('Resolusi link terlalu lama')),ms));
+/** Clear timers on both success and failure (including scraper errors). */
+export function withTimeout(promise, ms) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('Resolusi link terlalu lama')), ms);
+    Promise.resolve(promise).then(
+      value => { clearTimeout(timer); resolve(value); },
+      error => { clearTimeout(timer); reject(error); }
+    );
+  });
+}
 
 export default async function handler(req,res) {
   if (req.method !== 'POST') return json(res,405,{error:'Gunakan POST untuk menganalisis URL.'});
   try {
-    if (Number(req.headers['content-length']||0)>4096) return json(res,413,{error:'Data terlalu besar.'});
+    if (Number(req.headers?.['content-length']||0)>4096) return json(res,413,{error:'Data terlalu besar.'});
     const {url,platform} = validateSource(req.body?.url);
     // Lazy import prevents Mori bundle loading until a valid supported URL is given.
     const {scrapeUrl,resolveUrl} = await import('@coflyn/mori/engine.js');
-    const raw = await Promise.race([scrapeUrl(url,'auto'),sleepTimeout(40000)]);
+    const raw = await withTimeout(scrapeUrl(url,'auto'),40000);
     const media = normalizeMedia(raw,platform);
     const selected = media.options.slice(0,12);
     const options = await Promise.all(selected.map(async (item) => {
       let direct = item.sourceUrl;
       if (!direct.startsWith('https://')) {
-        try { direct = await Promise.race([resolveUrl(direct),sleepTimeout(7000)]); }
+        try { direct = await withTimeout(resolveUrl(direct),7000); }
         catch {return {type:item.type,quality:item.quality,kind:item.kind,ready:false,reason:'Server asal belum memberikan tautan langsung.'};}
       }
       try {assertRemoteUrl(direct);} catch {return {type:item.type,quality:item.quality,kind:item.kind,ready:false,reason:'URL media ditolak oleh pemeriksaan keamanan.'};}

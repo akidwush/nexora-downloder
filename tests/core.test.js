@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {validateSource,classifyMedia,normalizeMedia,safeMediaHeaders} from '../lib/platforms.js';
-import {assertRemoteUrl,filenameFromMeta} from '../lib/safety.js';
+import {assertRemoteUrl,assertPublicAddresses,filenameFromMeta} from '../lib/safety.js';
 import {makeDownloadToken,verifyDownloadToken,hasDownloadProxy} from '../lib/token.js';
 
 test('platform validation exact domains, allowed subdomain',()=>{
@@ -39,4 +39,17 @@ test('signed token accepts valid, rejects tampered',()=>{
   assert.equal(verifyDownloadToken(token).filename,'test.mp4');
   assert.throws(()=>verifyDownloadToken(token+'wrong'));
   delete process.env.DOWNLOAD_SECRET;
+});
+
+test('reject private, reserved, and mixed DNS answers before the proxy connects',()=>{
+  for(const address of ['127.0.0.1','10.1.2.3','169.254.169.254','172.20.0.1','192.168.1.1','192.0.0.8','192.88.99.1','198.18.0.1','203.0.113.9']) {
+    assert.throws(()=>assertPublicAddresses([{address,family:4}]),address);
+  }
+  for(const address of ['::1','fc00::1','fe80::1','::ffff:127.0.0.1','2001:db8::1']) {
+    assert.throws(()=>assertPublicAddresses([{address,family:6}]),address);
+  }
+  assert.doesNotThrow(()=>assertPublicAddresses([{address:'8.8.8.8',family:4}]));
+  assert.doesNotThrow(()=>assertPublicAddresses([{address:'2606:4700:4700::1111',family:6}]));
+  assert.throws(()=>assertPublicAddresses([{address:'8.8.8.8',family:4},{address:'127.0.0.1',family:4}]));
+  assert.throws(()=>assertPublicAddresses([]));
 });

@@ -69,7 +69,7 @@ LICENSE           # GNU GPL-3.0
 
 ## Keamanan dan lisensi
 
-Input divalidasi terhadap 16 domain platform, non-HTTPS dan host palsu ditolak. Proxy memakai token HMAC sementara, pemeriksaan DNS publik, batas panjang/ukuran, dan tidak meneruskan cookie dari scraper. Itu pengamanan dasar, bukan jaminan kebal seluruh SSRF/DNS rebinding; untuk deployment skala besar tambahkan outbound egress proxy dan rate limiter.
+Input divalidasi terhadap 16 domain platform, non-HTTPS dan host palsu ditolak. Proxy memakai token HMAC sementara, pemeriksaan DNS publik, batas panjang/ukuran, dan tidak meneruskan cookie dari scraper. Proxy mengunci koneksi TLS ke IP DNS yang sudah diperiksa, sehingga tidak mengulang resolusi DNS sesudah validasi. Ini pengamanan berlapis, bukan pengganti kebijakan outbound egress; untuk deployment skala besar tambahkan egress proxy dan rate limiter.
 
 Package Mori diterbitkan sebagai **GPL-3.0-or-later**. Project ini menyertakan `LICENSE` GPL-3.0 dan atribusi di footer. Jika mendistribusikan kode, patuhi kewajiban GPL serta lisensi dependency lainnya.
 

@@ -3,13 +3,14 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
-import analyze from '../api/analyze.js';
+import analyze, {withTimeout} from '../api/analyze.js';
 import download from '../api/download.js';
 import health from '../api/health.js';
 
 function mockRes() {
   return {
     statusCode:200,headers:{},output:null,
+    on(){return this}, off(){return this},
     status(code){this.statusCode=code;return this},
     setHeader(key,value){this.headers[key]=value;return this},
     json(body){this.output=body;return this},
@@ -44,4 +45,19 @@ test('static web paths and deployment settings exist',()=>{
   const config=JSON.parse(fs.readFileSync(path.join(root,'vercel.json'),'utf8'));
   assert.equal(config.outputDirectory,'public');
   for(const file of ['styles.css','app.js','favicon.svg']) assert.ok(fs.existsSync(path.join(root,'public',file)));
+});
+
+test('analysis timeout resolves, rejects and expires correctly',async()=>{
+  assert.equal(await withTimeout(Promise.resolve(42),50),42);
+  await assert.rejects(withTimeout(Promise.reject(new Error('provider failed')),50),/provider failed/);
+  await assert.rejects(withTimeout(new Promise(()=>{}),5),/terlalu lama/);
+});
+test('footer retains community links on main',()=>{
+  const root=fileURLToPath(new URL('../',import.meta.url));
+  const html=fs.readFileSync(path.join(root,'public/index.html'),'utf8');
+  const css=fs.readFileSync(path.join(root,'public/styles.css'),'utf8');
+  assert.match(html,/https:\/\/www\.tiktok\.com\/@dikaorangbaik1/);
+  assert.match(html,/https:\/\/whatsapp\.com\/channel\/0029VatAJdFHltYFp77RUU3a/);
+  assert.match(html,/class="footer-social-links"/);
+  assert.match(css,/\.footer-social-link\{/);
 });
