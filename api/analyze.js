@@ -1,5 +1,5 @@
 import { validateSource, normalizeMedia } from '../lib/platforms.js';
-import { assertRemoteUrl, filenameFromMeta } from '../lib/safety.js';
+import { assertRemoteUrl, filenameFromMeta, isStreamManifest } from '../lib/safety.js';
 import { hasDownloadProxy, makeDownloadToken } from '../lib/token.js';
 
 export const config = { maxDuration: 60 };
@@ -35,6 +35,11 @@ export function withTimeout(promise, ms) {
   });
 }
 
+/** Prefer working formats, without losing unavailable formats when few work. */
+export function selectDownloadOptions(options, limit = 12) {
+  return [...options.filter(item => item.ready), ...options.filter(item => !item.ready)].slice(0,limit);
+}
+
 export default async function handler(req,res) {
   if (req.method !== 'POST') return json(res,405,{error:'Gunakan POST untuk menganalisis URL.'});
   try {
@@ -44,8 +49,7 @@ export default async function handler(req,res) {
     const {scrapeUrl,resolveUrl} = await import('@coflyn/mori/engine.js');
     const raw = await withTimeout(scrapeUrl(url,'auto'),40000);
     const media = normalizeMedia(raw,platform);
-    const selected = media.options.slice(0,12);
-    const options = await Promise.all(selected.map(async (item) => {
+    const processed = await Promise.all(media.options.map(async (item) => {
       let direct = item.sourceUrl;
       if (!direct.startsWith('https://')) {
         try { direct = await withTimeout(resolveUrl(direct),7000); }
@@ -53,7 +57,7 @@ export default async function handler(req,res) {
       }
       let parsedMedia;
       try {parsedMedia = assertRemoteUrl(direct);} catch {return {type:item.type,quality:item.quality,kind:item.kind,ready:false,reason:'URL media ditolak oleh pemeriksaan keamanan.'};}
-      if (/\.(?:m3u8|mpd)$/i.test(parsedMedia.pathname)) {
+      if (isStreamManifest(parsedMedia.href)) {
         return {type:item.type,quality:item.quality,kind:item.kind,ready:false,reason:'Stream HLS/DASH perlu digabung dan belum didukung sebagai file tunggal.'};
       }
       const name = filenameFromMeta(media.title,extensionForMedia(item,direct));
@@ -61,8 +65,9 @@ export default async function handler(req,res) {
       return {type:item.type,quality:item.quality,kind:item.kind,ready:true,mirror:item.isMirror,
         directUrl:direct,downloadUrl:token?`/api/download?token=${encodeURIComponent(token)}`:null};
     }));
+    const options = selectDownloadOptions(processed);
     return json(res,200,{ok:true,platform,title:media.title,author:media.author,
-      thumbnail:media.thumbnail,options,proxyEnabled:hasDownloadProxy(),truncated:media.options.length>12,
+      thumbnail:media.thumbnail,options,proxyEnabled:hasDownloadProxy(),truncated:media.options.length>options.length,
       notice:'Ketersediaan format mengikuti sumber. Kualitas/audio tidak dijamin pada setiap link.'});
   } catch (error) {
     const expected = /platform|URL|tautan|HTTPS|tidak valid|tidak didukung/i.test(error?.message || '');
