@@ -59,6 +59,25 @@ export default async function handler(req,res) {
   res.on('close', closeHandler);
   try {
     const payload = verifyDownloadToken(req.query?.token);
+    // Reject exhausted IPs before contacting media providers to save bandwidth.
+    // In serverless hosting this counter is per-process only, NOT global/persistent.
+    if (payload.kind !== 'audio' && payload.kind !== 'image') {
+      if (!isVideoLimiterConfigured()) {
+        return fail(res,503,'DOWNLOAD_SECRET belum dikonfigurasi.');
+      }
+      let current;
+      try { current = videoQuota(req,false); }
+      catch { return fail(res,503,'Limiter video tidak dapat mengenali IP pengunjung.'); }
+      if (!current.allowed) {
+        res.setHeader('X-RateLimit-Limit',String(VIDEO_LIMIT));
+        res.setHeader('X-RateLimit-Remaining','0');
+        if (current.resetAt) {
+          const retry=Math.ceil((Date.parse(current.resetAt)-Date.now())/1000);
+          if (Number.isFinite(retry) && retry>0) res.setHeader('Retry-After',String(retry));
+        }
+        return fail(res,429,'Limit sementara 4 video per IP selama 24 jam telah tercapai pada server ini.');
+      }
+    }
     let target = payload.url;
     let upstream;
     for (let n=0;n<4;n++) {
@@ -84,18 +103,18 @@ export default async function handler(req,res) {
       upstream.destroy();
       return fail(res,413,'File terlalu besar untuk proxy Vercel (maksimum 120 MB). Gunakan tautan langsung.');
     }
-    // Verify quota only after a valid downloadable upstream response, before streaming.
+    // Synchronously consume quota after checking upstream, before sending video.
     // Older signed tokens without a kind are conservatively treated as video.
     if (payload.kind !== 'audio' && payload.kind !== 'image') {
       if (!isVideoLimiterConfigured()) {
         upstream.destroy();
-        return fail(res,503,'Kuota download video belum dikonfigurasi.');
+        return fail(res,503,'DOWNLOAD_SECRET belum dikonfigurasi.');
       }
       let quota;
-      try { quota = await videoQuota(req,true); }
+      try { quota = videoQuota(req,true); }
       catch {
         upstream.destroy();
-        return fail(res,503,'Layanan kuota video sedang tidak tersedia. Coba lagi nanti.');
+        return fail(res,503,'Limiter video sementara tidak tersedia. Coba lagi nanti.');
       }
       res.setHeader('X-RateLimit-Limit',String(VIDEO_LIMIT));
       res.setHeader('X-RateLimit-Remaining',String(quota.remaining));
@@ -105,7 +124,7 @@ export default async function handler(req,res) {
           const retry=Math.ceil((Date.parse(quota.resetAt)-Date.now())/1000);
           if (Number.isFinite(retry) && retry>0) res.setHeader('Retry-After',String(retry));
         }
-        return fail(res,429,'Limit 4 video per 24 jam untuk IP ini sudah habis. Coba lagi setelah kuota pulih.');
+        return fail(res,429,'Limit sementara 4 video per 24 jam untuk IP ini sudah habis pada server ini.');
       }
     }
     const filename = String(payload.filename||'nexora-media.mp4').replace(/["\\\r\n]/g,'_').slice(0,140);
