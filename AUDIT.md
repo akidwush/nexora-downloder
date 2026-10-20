@@ -45,17 +45,13 @@ Catatan: lulusnya unit test dan syntax check **tidak membuktikan** seluruh platf
 
 **Batasan belum terselesaikan:** belum diuji end-to-end dengan Mori pada runtime produksi dan sejumlah provider dapat menolak permintaan dari serverless; download streaming terpisah, DRM, konten privat, rate limiting persisten dan observability tetap di luar cakupan patch ini.
 
-## Limiter video lintas browser — 20 Oktober 2026
+## Limiter video: implementasi hanya kode (20 Oktober 2026)
 
-- Video: maksimal **4 permintaan unduh yang disetujui backend dalam 24 jam berjalan** per IP publik. Pembatasan dicek setelah upstream mengembalikan respons media layak unduh dan sebelum mengirim body video.
-- Browser berbeda di IP yang sama memakai kuota bersama. IP pengguna disimpan **hanya sebagai HMAC-SHA256** memakai DOWNLOAD_SECRET; IPv6 digabung per /64 untuk mengurangi reset saat privacy address berubah.
-- Persistensi/atomicity: fungsi `public.nexora_downloader_quota` memakai transaksi advisory lock, tabel `public.nexora_downloader_ip_quota`, RLS aktif, akses hanya service_role. Row lama dibersihkan berkala oportunistik.
-- Video URL tidak dibocorkan dari hasil analisis; tombol unduhan memakai token bertanda tangan. Foto/audio tidak memakai kuota video. Token yang dibuat sebelum patch tanpa kategori dianggap video.
-- `GET /api/quota` membaca sisa slot; UI menampilkan 4/4 hingga 0/4 dan waktu pulih berikutnya.
-- **Fail closed:** tanpa `DOWNLOAD_SECRET`, `SUPABASE_URL`, dan `SUPABASE_SECRET_KEY` di runtime, video tidak dapat diunduh. Rahasia jangan dimasukkan ke git/frontend.
-- **Batasan:** IP tidak sama dengan identitas orang; satu Wi-Fi berbagi kuota, VPN/jaringan berbeda bisa mendapatkan kuota lain. Slot dipakai saat backend mulai mengirim video, meskipun pengguna membatalkan unduhan. Batas per IP tidak membatasi biaya global ataupun permintaan analisis yang tidak menghasilkan download.
-- **Koreksi pemisahan project:** migrasi yang sempat diterapkan ke Supabase `All tools` telah di-rollback. Tabel `public.nexora_downloader_ip_quota` terbukti kosong sebelum rollback; tabel dan fungsi `public.nexora_downloader_quota` telah dihapus dan diverifikasi tidak ada. Jangan gunakan database All Tools untuk downloader. Migrasi di repository hanya untuk project **khusus Nexora Downloader**, yang belum dibuat/diaktifkan. Target Vercel untuk repo standalone juga belum terhubung, sehingga fitur limiter belum aktif di produksi. `npm run check` dan `npm test` berjalan pada GitHub Actions.
-
-## Koreksi infrastruktur (20 Oktober 2026)
-
-Database kuota telah dipisahkan dari project utama: objek yang sempat dibuat di Supabase All Tools dikembalikan seperti semula (kedua objek dihapus setelah memastikan tabel 0 baris). `.env.example` kini menggunakan placeholder URL Supabase khusus downloader; README menegaskan bahwa deploy harus memakai database khusus. Tidak ada resource Supabase Nexora Downloader baru yang dibuat otomatis, sehingga sebelum project khusus dikonfigurasi unduhan video tetap fail-closed.
+- Permintaan limit: 4 video per IP per 24 jam berjalan, tetap dikenali ketika browser diganti **pada proses server yang sama**.
+- Implementasi: `lib/quota.js` menyimpan daftar waktu unduhan pada `Map` dalam memori Node.js dengan HMAC-SHA256 atas identitas IP, sehingga alamat IP mentah tidak disimpan dalam counter. Rentang IPv6 dihitung per /64. Memori dibatasi 5.000 bucket aktif dan entri lama dibersihkan oportunistik.
+- Endpoint `/api/download` memeriksa kuota sebelum menghubungi provider. Slot ditambah setelah HTTP upstream dapat diterima, sebelum streaming, secara sinkron dalam satu proses. Jika habis, HTTP 429 beserta `Retry-After`. Foto/audio tidak memakai kuota video.
+- Tidak lagi ada penyimpanan eksternal, endpoint statistik kuota antar-instance, kunci/URL layanan data tambahan, atau berkas migrasi database.
+- Hanya `DOWNLOAD_SECRET` (minimal 32 karakter) yang diperlukan untuk membuat/verifikasi token unduhan; tanpa secret, unduhan video tidak diaktifkan.
+- **Keterbatasan penting:** Vercel menjalankan Functions pada beberapa instance/proses terpisah. `Map` tersebut **tidak persisten dan tidak dibagi**; restart, redeploy, cold start, atau perpindahan instance dapat menghapus/memisahkan hitungan. Karena itu batas 4/24 jam **tidak terjamin secara global**, tidak boleh diklaim sebagai perlindungan biaya/bandwidth yang kuat.
+- Satu IP bersama berarti satu kuota proses bersama; pergantian IP/VPN dapat menghindari pembatasan. Kode tidak bisa mengenali satu orang secara andal ketika IP berubah.
+- Verifikasi: sintaks dan tes regresi melalui GitHub Actions; pengujian lintas instance dan trafik nyata belum dilakukan. Tidak ada perubahan database ataupun hosting eksternal dalam revisi ini.
