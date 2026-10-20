@@ -108,3 +108,26 @@ body {
 @media(prefers-reduced-motion:reduce){
   .kawaii-floaters .emoji{animation:none}
 }
+
+
+/* Footer socials · matching the site's soft kawaii palette. */
+.footer-social{display:flex;align-items:center;justify-content:space-between;gap:24px;padding:26px 0;border-top:2px dashed #e8d4c4}
+.footer-social-intro{display:flex;align-items:center;gap:13px;min-width:0}
+.footer-social-spark{display:grid;place-items:center;flex-shrink:0;width:50px;height:50px;border:2px solid var(--brown);border-radius:16px;background:#ffe0ef;box-shadow:0 3px 0 var(--brown);font-size:24px;transform:rotate(-6deg)}
+.footer-social-intro b{display:block;font:700 19px/1.2 var(--display);color:var(--brown)}
+.footer-social-intro b span{color:#f471ac}
+.footer-social-intro p{margin:6px 0 0;font-size:12px;line-height:1.5;color:var(--muted)}
+.footer-social-links{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px;flex:0 1 550px}
+.footer-social-link{display:flex;align-items:center;gap:11px;min-width:0;padding:12px 14px;border:2px solid var(--brown);border-radius:17px;box-shadow:0 4px 0 var(--brown);color:var(--brown);text-decoration:none;transition:transform .2s ease,box-shadow .2s ease}
+.footer-social-link:hover{transform:translateY(-3px);box-shadow:0 7px 0 var(--brown)}
+.footer-social-link:focus-visible{outline:3px solid #e870a8;outline-offset:4px}
+.footer-social-tiktok{background:#ffe7f2}
+.footer-social-whatsapp{background:#ddf9e8}
+.footer-social-icon{display:grid;place-items:center;flex-shrink:0;width:39px;height:39px;background:rgba(255,255,255,.8);border-radius:12px;font-size:21px}
+.footer-social-copy{display:flex;flex-direction:column;gap:3px;min-width:0}
+.footer-social-copy b{font:700 13px/1.2 var(--display)}
+.footer-social-copy small{font-size:11px;line-height:1.3;color:#725f56;overflow-wrap:anywhere}
+.footer-social-arrow{font-size:21px;margin-left:auto;align-self:center}
+@media(max-width:960px){.footer-social{flex-direction:column;align-items:stretch}.footer-social-links{flex-basis:auto}}
+@media(max-width:700px){.footer-social{padding:24px 0}.footer-social-links{grid-template-columns:1fr;gap:12px}.footer-social-intro b{font-size:18px}.footer-social-link{padding:12px 14px}}
+@media(prefers-reduced-motion:reduce){.footer-social-link{transition:none}}
