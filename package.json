@@ -3,11 +3,11 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "All Downloader Nexora — Kawaii Arcade UI with Mori adapter for Vercel",
+  "description": "All Downloader Nexora — Netlify static frontend, native functions, Mori adapter",
   "scripts": {
-    "dev": "npx vercel dev",
+    "dev": "npx netlify-cli dev",
     "test": "node --test tests/*.test.js",
-    "check": "node --check api/analyze.js && node --check api/download.js && node --check api/health.js && node --check lib/platforms.js && node --check lib/safety.js && node --check lib/token.js && node --check lib/quota.js && node --check public/app.js"
+    "check": "node --check api/analyze.js && node --check api/download.js && node --check api/health.js && node --check lib/platforms.js && node --check lib/safety.js && node --check lib/token.js && node --check lib/quota.js && node --check public/app.js && node --check netlify/functions/analyze.mjs && node --check netlify/functions/download.mjs && node --check netlify/functions/health.mjs && node --check tests/netlify.test.js"
   },
   "engines": {
     "node": ">=20"
