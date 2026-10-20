@@ -61,7 +61,7 @@ LICENSE           # GNU GPL-3.0
 
 - **Belum menjamin setiap platform/URL berhasil.** Mori menggunakan parser dan sebagian endpoint pihak ketiga, yang bisa berubah atau memblokir serverless/IP Vercel.
 - **Video dan audio terpisah tidak di-*mux* otomatis**. Label jenis/kualitas berasal dari provider; tidak ada konversi MP3 atau jaminan audio di semua MP4.
-- Endpoint analisis menampilkan hingga 12 opsi per link. Untuk playlist besar, adapter ini **belum** membuat job batch atau antrian terpisah.
+- Endpoint analisis memeriksa hingga 20 kandidat valid, memprioritaskan opsi yang siap diunduh, dan menampilkan hingga 12 opsi per link. Untuk playlist besar, adapter ini **belum** membuat job batch atau antrian terpisah.
 - Proxy file dibatasi 120 MB dan eksekusi serverless ~55 detik; limit aktual paket/region Vercel mungkin lebih ketat. Media besar sebaiknya dibuka lewat link langsung atau backend khusus.
 - Download yang memerlukan cookie login, DRM, atau hak akses privat tidak didukung. Hanya unduh konten yang Anda punya hak untuk menyimpan.
 - Untuk traffic publik besar, pasang **Vercel WAF/rate limiting**, observability dan monitor error per provider. Fungsi analisis saat ini tidak memakai rate limiter persisten.
