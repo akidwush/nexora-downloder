@@ -81,6 +81,33 @@ function showError(message) {
 function safeHttps(value) {
   try { const url=new URL(value); return url.protocol === 'https:' ? url.href : ''; } catch {return '';}
 }
+// Media bytes come from the source provider after a signed Netlify redirect.
+// Playback is not guaranteed: some providers block hotlinks or set attachment headers.
+function openVideoPreview(downloadUrl, title, posterUrl) {
+  const dialog=$('#video-preview-dialog');
+  const player=$('#video-preview-player');
+  const status=$('#video-preview-status');
+  player.pause();
+  player.removeAttribute('src');
+  player.removeAttribute('poster');
+  if (posterUrl) player.poster=posterUrl;
+  $('#video-preview-title').textContent=String(title||'Preview video').slice(0,200);
+  $('#video-preview-save').href=downloadUrl;
+  status.textContent='Memuat preview dari server sumber...';
+  player.src=downloadUrl;
+  if (!dialog.open) dialog.showModal();
+  // A preview click is a user gesture. When autoplay is disallowed, controls
+  // remain visible and the visitor can tap Play manually.
+  const playing=player.play();
+  if(playing && typeof playing.catch==='function') playing.catch(()=>{
+    if(!player.error) status.textContent='Tekan Play untuk menonton. Jika tidak bisa diputar, coba Download / Simpan.';
+  });
+}
+function stopVideoPreview() {
+  const dialog=$('#video-preview-dialog');
+  if(dialog.open) dialog.close();
+}
+
 function showResults(data) {
   const target = $('#result-area'); target.replaceChildren();
   const wrap = make('div','result-ready');
@@ -108,16 +135,26 @@ function showResults(data) {
       if (entry.ready) {
         if (entry.downloadUrl?.startsWith('/api/download?token=')) {
           const redirectMode=data.deliveryMode==='redirect';
-          const anchor=make('a','download-choice',redirectMode?'Buka media':'Unduh');
+          const actions=make('div','result-actions');
+          if(redirectMode && kind==='video'){
+            const preview=make('button','download-choice preview-choice','Preview');
+            preview.type='button';
+            preview.prepend(icon('play'));
+            preview.setAttribute('aria-label','Preview video '+String(entry.type||''));
+            preview.addEventListener('click',()=>openVideoPreview(entry.downloadUrl,data.title,thumbUrl));
+            actions.append(preview);
+          }
+          const anchor=make('a','download-choice',redirectMode && kind==='video'?'Download ↗':redirectMode?'Buka media':'Unduh');
           anchor.href=entry.downloadUrl;
           if(redirectMode){anchor.target='_blank';anchor.rel='noopener noreferrer';}
           anchor.append(icon(redirectMode?'external':'download'));
           anchor.addEventListener('click',()=>toast(data.deliveryMode==='redirect'
-            ? 'Media dibuka dari server sumber. Jika terbuka di browser, simpan manual.'
+            ? 'File dibuka dari server sumber. Jika diputar di browser, simpan manual.'
             : 'Unduhan dimulai jika server media mengizinkan.'));
-          item.append(anchor);
+          actions.append(anchor);
           const direct=safeHttps(entry.directUrl);
-          if (direct && kind!=='video') {const fallback=make('a','download-choice secondary-link');fallback.href=direct;fallback.target='_blank';fallback.rel='noopener noreferrer';fallback.title='Buka tautan media langsung';fallback.append(icon('external'));fallback.setAttribute('aria-label',`Buka link langsung ${entry.type||''}`);item.append(fallback);}
+          if (direct && kind!=='video') {const fallback=make('a','download-choice secondary-link');fallback.href=direct;fallback.target='_blank';fallback.rel='noopener noreferrer';fallback.title='Buka tautan media langsung';fallback.append(icon('external'));fallback.setAttribute('aria-label',`Buka link langsung ${entry.type||''}`);actions.append(fallback);}
+          item.append(actions);
         } else {
           const direct=safeHttps(entry.directUrl);
           if (direct && kind!=='video') {const anchor=make('a','download-choice','Buka media');anchor.href=direct;anchor.target='_blank';anchor.rel='noopener noreferrer';anchor.append(icon('external'));item.append(anchor);}
@@ -128,7 +165,7 @@ function showResults(data) {
   }
   wrap.append(options);
   const notice=make('p','result-note',data.deliveryMode==='redirect'
-    ? 'Mode hemat Netlify: file video/audio/foto dibuka langsung dari server sumber, bukan diproxy Netlify. Media mungkin diputar atau ditolak oleh sumber; unduh manual jika tersedia. Batas 4 video/24 jam per IP hanya perkiraan per proses server.'
+    ? 'Ketuk Preview untuk menonton video dulu, lalu Download / Simpan bila cocok. File dibuka langsung dari sumber, jadi preview/unduhan bisa ditolak provider. Preview dan simpan dengan token yang sama dihitung satu slot pada instance Netlify yang sama; limiter 4 video/24 jam tetap sementara per instance.'
     : data.proxyEnabled
       ? 'Mode proxy aktif (maks. 120 MB, batas waktu server berlaku). Jika unduh gagal, coba tautan langsung untuk media non-video. Hanya simpan media yang kamu berhak unduh.'
       : 'Mode tautan langsung: browser akan membuka file provider. Aktifkan DOWNLOAD_SECRET pada hosting untuk tombol video. Format dan audio bergantung pada sumber.');
@@ -158,6 +195,25 @@ function renderHistory() {
     card.append(reuse);target.append(card);
   }
 }
+
+// Release the player when the visitor closes the dialog, preventing
+// video playback, network usage and memory retention in the background.
+const previewDialog=$('#video-preview-dialog');
+const previewPlayer=$('#video-preview-player');
+$('#video-preview-close').addEventListener('click',stopVideoPreview);
+$('#video-preview-done').addEventListener('click',stopVideoPreview);
+previewDialog.addEventListener('click',event=>{if(event.target===previewDialog) stopVideoPreview();});
+previewDialog.addEventListener('close',()=>{
+  previewPlayer.pause();
+  previewPlayer.removeAttribute('src');
+  previewPlayer.load();
+});
+previewPlayer.addEventListener('error',()=>{
+  $('#video-preview-status').textContent='Preview tidak bisa diputar dari sumber ini. Coba Download / Simpan, atau analisis ulang bila link sudah kedaluwarsa.';
+});
+previewPlayer.addEventListener('playing',()=>{
+  $('#video-preview-status').textContent='Video sedang diputar dari server sumber. ✨';
+});
 
 $('#download-form').addEventListener('submit',async event=>{
   event.preventDefault();if(busy)return;
