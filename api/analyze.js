@@ -1,6 +1,7 @@
 import { validateSource, normalizeMedia } from '../lib/platforms.js';
 import { assertRemoteUrl, filenameFromMeta, isStreamManifest } from '../lib/safety.js';
 import { hasDownloadProxy, makeDownloadToken } from '../lib/token.js';
+import { isVideoLimiterConfigured, VIDEO_LIMIT } from '../lib/quota.js';
 
 export const config = { maxDuration: 60 };
 function json(res, status, payload) {
@@ -61,13 +62,20 @@ export default async function handler(req,res) {
         return {type:item.type,quality:item.quality,kind:item.kind,ready:false,reason:'Stream HLS/DASH perlu digabung dan belum didukung sebagai file tunggal.'};
       }
       const name = filenameFromMeta(media.title,extensionForMedia(item,direct));
-      const token = makeDownloadToken({url:direct,filename:name,headers:item.headers});
+      // Never leak a playable video URL before a server-side quota check.
+      // Without a persistent counter (or token secret), video downloads must fail closed.
+      if (item.kind === 'video' && !isVideoLimiterConfigured()) {
+        return {type:item.type,quality:item.quality,kind:item.kind,ready:false,
+          reason:'Download video sementara tidak tersedia (kuota server belum dikonfigurasi).'};
+      }
+      const token = makeDownloadToken({url:direct,filename:name,headers:item.headers,kind:item.kind});
       return {type:item.type,quality:item.quality,kind:item.kind,ready:true,mirror:item.isMirror,
-        directUrl:direct,downloadUrl:token?`/api/download?token=${encodeURIComponent(token)}`:null};
+        ...(item.kind === 'video' ? {} : {directUrl:direct}),
+        downloadUrl:token?`/api/download?token=${encodeURIComponent(token)}`:null};
     }));
     const options = selectDownloadOptions(processed);
     return json(res,200,{ok:true,platform,title:media.title,author:media.author,
-      thumbnail:media.thumbnail,options,proxyEnabled:hasDownloadProxy(),truncated:media.options.length>options.length,
+      thumbnail:media.thumbnail,options,proxyEnabled:hasDownloadProxy(),videoLimit:VIDEO_LIMIT,videoLimiterEnabled:isVideoLimiterConfigured(),truncated:media.options.length>options.length,
       notice:'Ketersediaan format mengikuti sumber. Kualitas/audio tidak dijamin pada setiap link.'});
   } catch (error) {
     const expected = /platform|URL|tautan|HTTPS|tidak valid|tidak didukung/i.test(error?.message || '');
