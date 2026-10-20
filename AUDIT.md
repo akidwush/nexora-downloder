@@ -30,3 +30,17 @@ Repository: `akidwush/nexora-downloder` · branch: `main`
 - Keberhasilan deployment Vercel untuk repo ini belum terverifikasi. Setelah terhubung, periksa `/api/health`, log Functions, dan beberapa tautan publik yang pengguna berhak unduh.
 
 Catatan: lulusnya unit test dan syntax check **tidak membuktikan** seluruh platform downloader pasti bekerja end-to-end.
+
+## Audit lanjutan — perbaikan downloader (20 Oktober 2026)
+
+| Prioritas | Temuan baru | Perbaikan di main |
+|---|---|---|
+| Sedang | Deskripsi seperti "MP4 no sound" bisa diklasifikasikan sebagai audio karena substring `sound` | Gunakan ekstensi URL sebagai prioritas, kemudian token jenis media yang utuh |
+| Sedang | 12 kandidat gagal pertama menutupi format siap unduh di posisi berikutnya | Periksa seluruh 20 kandidat yang telah dinormalisasi, prioritaskan opsi valid dan batasi hasil akhir hingga 12 |
+| Tinggi | Alamat IPv6 yang sama dapat dieja dengan nol di depan sehingga lolos regex blokir range reserved | Kanonisasi IPv6 sebelum pemeriksaan; blok pula rentang dokumentasi dan ORCHID |
+| Sedang | Proxy dapat menyimpan respons HTTP 206 parsial atau redirect ke manifest HLS/DASH sebagai file lengkap | Wajibkan HTTP 200; blok MIME dan URL playlist HLS/DASH serta respons dokumen |
+| Rendah | Belum ada tes regresi untuk keadaan di atas | Tambahkan kasus ke `tests/core.test.js` dan `tests/routes.test.js` |
+
+**Verifikasi:** GitHub Actions menjalankan syntax check dan unit tests otomatis setiap push ke main. Status commit akhir dapat dilihat pada tab Actions repository; pengujian live terhadap situs/provider eksternal tetap membutuhkan deployment dan tautan media asli.
+
+**Batasan belum terselesaikan:** belum diuji end-to-end dengan Mori pada runtime produksi dan sejumlah provider dapat menolak permintaan dari serverless; download streaming terpisah, DRM, konten privat, rate limiting persisten dan observability tetap di luar cakupan patch ini.
