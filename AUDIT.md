@@ -55,3 +55,15 @@ Catatan: lulusnya unit test dan syntax check **tidak membuktikan** seluruh platf
 - **Keterbatasan penting:** Vercel menjalankan Functions pada beberapa instance/proses terpisah. `Map` tersebut **tidak persisten dan tidak dibagi**; restart, redeploy, cold start, atau perpindahan instance dapat menghapus/memisahkan hitungan. Karena itu batas 4/24 jam **tidak terjamin secara global**, tidak boleh diklaim sebagai perlindungan biaya/bandwidth yang kuat.
 - Satu IP bersama berarti satu kuota proses bersama; pergantian IP/VPN dapat menghindari pembatasan. Kode tidak bisa mengenali satu orang secara andal ketika IP berubah.
 - Verifikasi: sintaks dan tes regresi melalui GitHub Actions; pengujian lintas instance dan trafik nyata belum dilakukan. Tidak ada perubahan database ataupun hosting eksternal dalam revisi ini.
+
+## Migrasi Netlify dari GitHub — 20 Oktober 2026
+
+- File `netlify.toml` menyiapkan publish `public`, validasi build, native Netlify Functions, dan paket Mori sebagai dependency eksternal agar `bundle.js` turut dibundel.
+- Native function `/api/analyze` mengadaptasi API Node lama ke Web `Request`/`Response`, dengan throttle pendek 12 permintaan per IP per 60 detik.
+- `/api/health` melaporkan `hosting: Netlify` dan `deliveryMode: redirect`.
+- `/api/download` **tidak menggunakan streaming/proxy video**, melainkan memvalidasi token dan mengalihkan browser (HTTP 302) ke media sumber. Tidak ada transfer file video melalui Netlify. Media dapat terbuka, diputar, atau ditolak provider: keberhasilan unduhan bergantung sumber.
+- Perbaikan tambahan: `makeDownloadToken` kini menyimpan `kind` (video/audio/image), agar foto/audio tidak salah memakai kuota video. Token lama tanpa `kind` tetap diperlakukan sebagai video.
+- Limiter memanfaatkan `Context.ip` Netlify untuk identitas IP server-side. Kuota memori **hanya best-effort per-instance**, tidak persisten, dan bisa dilewati lewat URL media langsung setelah redirect.
+- Environment variable yang perlu diatur di Netlify hanya `DOWNLOAD_SECRET` dengan nilai rahasia minimal 32 karakter. Tidak memakai layanan database tambahan.
+- Tes unit memeriksa respons Netlify, format token, batas 4 redirect per IP per instance, foto/audio bebas kuota video, dan penolakan HLS/DASH.
+- Deploy aktual ke akun Netlify belum dilakukan dari chat: buat site dengan Import from Git dan atur `DOWNLOAD_SECRET` di dashboard. Hasil build function bundling dan unduhan provider sungguhan masih perlu diuji setelah site terbit.
