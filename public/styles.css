@@ -222,3 +222,33 @@ html,body{max-width:100%;overflow-x:clip}
   .video-preview-dismiss,.video-preview-save{width:100%;min-height:43px}
   .video-preview-close{width:36px;height:36px}
 }
+
+
+/* History list responsive overflow fix: long titles must never widen the grid track. */
+.history-panel,.history-list{min-width:0;max-width:100%}
+.history-list{grid-template-columns:minmax(0,1fr)}
+.history-item{min-width:0;max-width:100%;width:100%}
+.history-item .history-name{flex:1 1 0;min-width:0;overflow:hidden}
+.history-item .history-name b,.history-item .history-name small{
+  display:block;min-width:0;max-width:100%;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap
+}
+.history-item .history-p,.history-item button{flex-shrink:0}
+@media(max-width:700px){
+  .history-item{
+    display:grid;grid-template-columns:auto minmax(0,1fr);
+    gap:7px 10px;padding:11px 12px
+  }
+  .history-item .history-p{grid-column:1;grid-row:1 / span 2;align-self:start}
+  .history-item .history-name{grid-column:2;grid-row:1}
+  .history-item .history-name b{
+    display:-webkit-box;-webkit-box-orient:vertical;
+    -webkit-line-clamp:2;line-clamp:2;white-space:normal;overflow-wrap:anywhere
+  }
+  .history-item button{grid-column:2;grid-row:2;justify-self:start}
+}
+@media(max-width:400px){
+  .history-item{gap:6px 8px;padding:10px}
+  .history-item .history-p{padding:7px;font-size:11px}
+  .history-item button{padding:6px 9px}
+}
