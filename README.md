@@ -86,7 +86,7 @@ LICENSE           # GNU GPL-3.0
 
 ## Keamanan dan lisensi
 
-Input divalidasi terhadap 16 domain platform, non-HTTPS dan host palsu ditolak. Mode Netlify memakai token HMAC sementara dan validasi URL HTTPS sebelum redirect tanpa meneruskan file, cookie, atau header scraper. Proxy Node lama memiliki pemeriksaan DNS publik dan pinning jika digunakan di hosting lain. Ini pengamanan berlapis, bukan pengganti kebijakan outbound egress; untuk deployment skala besar tambahkan egress proxy dan rate limiter.
+Input divalidasi terhadap 16 domain platform, non-HTTPS dan host palsu ditolak. Mode Netlify menggunakan token HMAC sementara dan limiter sebelum Netlify Edge mengambil media melalui HTTPS; Edge menolak URL dengan skema/hostname yang tidak aman dan tidak meneruskan cookie pengguna. Proxy Node lama memiliki pemeriksaan DNS publik dan pinning jika digunakan di hosting lain. Perlindungan ini bersifat berlapis dan tidak menjamin keamanan DNS terhadap semua CDN/redirect atau mencegah penyalahgunaan bandwidth; produksi berskala besar memerlukan pemeriksaan outbound dan rate limiting yang lebih kuat.
 
 Package Mori diterbitkan sebagai **GPL-3.0-or-later**. Project ini menyertakan `LICENSE` GPL-3.0 dan atribusi di footer. Jika mendistribusikan kode, patuhi kewajiban GPL serta lisensi dependency lainnya.
 
