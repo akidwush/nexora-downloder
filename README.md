@@ -19,13 +19,13 @@ Website **standalone**, bukan bagian dari All Tools Nexora. Landing page dan dow
 4. Deploy. Buka `/api/health` dan pastikan ada `"hosting":"Netlify"`. Uji link publik milikmu dan periksa Netlify Functions logs.
 5. Setiap push ke `main` otomatis memicu deploy baru melalui Git integration.
 
-**Preview video:** Setelah Analyze Link, pilih **Preview** pada format video untuk membuka pemutar HTML5 dalam dialog tanpa langsung meninggalkan halaman. Video hanya dimuat ketika pengunjung mengetuk Preview. Setelah menonton, pilih **Download / Simpan** atau tutup pemutar. Preview dan download melalui **token media yang sama** memakan satu slot kuota pada instance Netlify yang sama (seek/retry token sama tidak menambah slot). Browser mungkin tetap mengunduh secara otomatis atau tidak bisa memutar jika provider melarang hotlink, memasang header attachment, atau mengharuskan cookie/header khusus. Jika unduh membuka tab pemutar media, pengguna dapat menyimpan manual apabila diizinkan sumber. Ini bukan proxy streaming dan belum menjamin semua sumber bisa dipreview.
+**Preview video:** Setelah Analyze Link, tombol **Preview** pada video memakai `/api/media?mode=preview`, sedangkan **Download / Simpan** memakai `/api/media` dengan `Content-Disposition: attachment`. Keduanya satu domain dengan NEXORA, tanpa tab eksternal dan tanpa memaparkan URL CDN kepada navigasi browser. Pemutar mendukung permintaan `Range` untuk seek jika CDN mendukung. Token yang sama dihitung satu slot pada instance kuota yang sama. Beberapa provider tetap dapat menolak akses server-side, memerlukan cookie, atau mengirim format yang tidak dapat diputar.
 
-**Mode hemat bandwidth Netlify:** `/api/analyze` menggunakan Mori untuk mencari opsi media. `/api/download` memverifikasi token, menjalankan limiter IP per-instance, lalu mengirim **HTTP 302 redirect** ke URL HTTPS media asli. Byte video **tidak diteruskan oleh Netlify Functions**. Browser dapat membuka/streaming video dalam tab baru dan provider dapat menolak akses tanpa cookie/referer; unduh manual bila tersedia.
+**Mode unduh same-origin (Netlify Edge):** `/api/analyze` menggunakan Mori untuk mencari opsi media dan memberikan `/api/media?token=...`. `netlify/edge-functions/media.mjs` meminta izin ke `/api/download` (Function internal yang memverifikasi token dan limiter, masih membalas 302 **hanya ke Edge**), lalu Edge mengambil media dari CDN dan melakukan streaming ke browser dengan header unduh. Browser tetap di domain NEXORA. **Traffic video sekarang melewati Netlify Edge dan memakan bandwidth/kuota Netlify**: pantau pemakaian di dashboard agar tidak melebihi batas paket gratis. Proxy menetapkan batas 120 MB per respons dan menolak URL/protokol yang tidak aman; tidak menjamin semua video atau ukuran besar berhasil.
 
-**Batas 4 video/24 jam hanya best effort.** Kuota disimpan di memori masing-masing proses Netlify Function, tidak global dan tidak persisten. Mengganti browser dengan IP sama hanya berbagi hitungan ketika ditangani proses sama. Mengganti instance, cold start, restart, atau redeploy dapat mengulang kuota. Pengguna bisa memakai URL media langsung di luar situs setelah dialihkan. Ini bukan jaminan pencegahan penyalahgunaan atau pengendalian tagihan.
+**Batas 4 video/24 jam hanya best effort.** Kuota disimpan di memori masing-masing proses Netlify Function, tidak global dan tidak persisten. Mengganti browser dengan IP sama hanya berbagi hitungan ketika ditangani proses sama. Mengganti instance, cold start, restart, atau redeploy dapat mengulang kuota. Kuota per-instance ini bukan jaminan pencegahan penyalahgunaan atau pengendalian tagihan.
 
-Netlify membatasi respons streaming Functions maksimal 20 MB, jadi video besar harus memakai pengalihan ke sumber dan keberhasilannya bergantung pada sumber. Tanpa `DOWNLOAD_SECRET`, opsi video akan ditandai tidak siap; foto/audio masih dapat menggunakan URL langsung jika sumber mendukung.
+Netlify Functions memiliki batas respons streaming 20 MB; itulah sebabnya **streaming file dilakukan di Netlify Edge**, bukan di Functions. Edge memiliki batas dan penggunaan bandwidth tersendiri, serta ketergantungan pada kemampuan hotlink/akses upstream. Rute `/api/media` membatasi respons menjadi maksimum 120 MB. Tanpa `DOWNLOAD_SECRET`, opsi video akan ditandai tidak siap; foto/audio masih dapat menggunakan URL langsung jika sumber mendukung.
 ## Menjalankan di lokal
 
 Node.js 20+ (Node.js 22 direkomendasikan):
@@ -67,7 +67,7 @@ LICENSE           # GNU GPL-3.0
 ## Limiter video kode saja (tanpa database)
 
 - `lib/quota.js` menyimpan maksimum 4 cap waktu per IP dalam memori **tiap proses**. IP disimpan sebagai HMAC-SHA256 menggunakan `DOWNLOAD_SECRET`, tidak sebagai alamat mentah. Alamat IPv6 digabung ke /64.
-- Di Netlify, `/api/download` memeriksa kuota dan mengirim redirect 302 ke file asli (bukan streaming lewat Netlify); video ke-5 pada proses sama mendapat HTTP 429.
+- Di Netlify, `/api/download` memeriksa kuota dan mengirim HTTP 302 **ke Edge gateway internal saja**. `/api/media` lalu meng-stream byte media ke pengguna dengan domain NEXORA; video ke-5 pada proses sama mendapat HTTP 429.
 - Pada serverless, **setiap instance/function terisolasi**. Tidak ada counter bersama antar-instance dan tidak ada penyimpanan tahan restart. Ini *best effort*, bukan enforcement global atau jaminan pengendalian biaya.
 - Browser berbeda dengan IP yang sama akan berbagi kuota **jika diarahkan ke proses yang sama**. Satu jaringan Wi-Fi dapat berbagi IP; pengguna yang mengganti jaringan/VPN bisa mendapat IP berbeda.
 - Tampilan hanya mengumumkan batas sementara dan tidak lagi mengklaim angka sisa kuota real-time, karena informasi tersebut tidak bisa akurat lintas instance.
@@ -79,7 +79,7 @@ LICENSE           # GNU GPL-3.0
 - **Belum menjamin setiap platform/URL berhasil.** Mori menggunakan parser dan sebagian endpoint pihak ketiga, yang bisa berubah atau memblokir serverless/IP Netlify.
 - **Video dan audio terpisah tidak di-*mux* otomatis**. Label jenis/kualitas berasal dari provider; tidak ada konversi MP3 atau jaminan audio di semua MP4.
 - Endpoint analisis memeriksa hingga 20 kandidat valid, memprioritaskan opsi yang siap diunduh, dan menampilkan hingga 12 opsi per link. Untuk playlist besar, adapter ini **belum** membuat job batch atau antrian terpisah.
-- Netlify memakai redirect langsung agar video besar tidak melewati batas streaming Functions 20 MB. Sebagian provider dapat menolak hotlink atau memutar video di browser.
+- Unduhan memakai Netlify Edge gateway agar browser tidak dibawa ke domain provider; sebagian provider menolak proxy, dan bandwidth file dihitung pada Netlify. Limit 120 MB per respons dan batas layanan hosting tetap berlaku.
 - Download yang memerlukan cookie login, DRM, atau hak akses privat tidak didukung. Hanya unduh konten yang Anda punya hak untuk menyimpan.
 - Function analisis Netlify menerapkan throttle 12 permintaan per menit per IP. Monitor penggunaan credit, Functions logs, dan error provider; limit 24 jam masih per-instance.
 - Serverless tidak memiliki penyimpanan permanen. Riwayat berada di browser, bukan server.
@@ -98,5 +98,5 @@ Package Mori diterbitkan sebagai **GPL-3.0-or-later**. Project ini menyertakan `
 | Function 500 | Periksa runtime Node.js 20+, `@coflyn/mori` terinstal dan file `bundle.js` ikut dalam paket Functions. |
 | Ekstraksi gagal | Pastikan link publik; coba platform lain, cek Netlify Functions logs dan endpoint provider. |
 | Video gagal dibuka | Periksa `DOWNLOAD_SECRET` di Netlify dan `/api/health`. Provider dapat menolak direct link, dan kuota per-instance dapat sementara habis. |
-| File terbuka di tab baru | Ini adalah mode redirect Netlify. Simpan manual bila browser dan provider mengizinkan. |
+| Download gagal atau menampilkan JSON | Pastikan deploy memuat `netlify/edge-functions/media.mjs`, token belum kedaluwarsa, `DOWNLOAD_SECRET` terpasang, kuota masih cukup, dan provider tidak menolak akses dari Edge. |
 | Audio tidak muncul | Sumber tidak menawarkan audio gabungan, atau downloader Mori gagal mengekstraknya. |
