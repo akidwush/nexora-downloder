@@ -81,8 +81,8 @@ function showError(message) {
 function safeHttps(value) {
   try { const url=new URL(value); return url.protocol === 'https:' ? url.href : ''; } catch {return '';}
 }
-// Media bytes come from the source provider after a signed Netlify redirect.
-// Playback is not guaranteed: some providers block hotlinks or set attachment headers.
+// Signed media is streamed through the same-origin Netlify Edge gateway.
+// Provider restrictions may still prevent playback or downloading.
 function openVideoPreview(downloadUrl, title, posterUrl) {
   const dialog=$('#video-preview-dialog');
   const player=$('#video-preview-player');
@@ -93,8 +93,8 @@ function openVideoPreview(downloadUrl, title, posterUrl) {
   if (posterUrl) player.poster=posterUrl;
   $('#video-preview-title').textContent=String(title||'Preview video').slice(0,200);
   $('#video-preview-save').href=downloadUrl;
-  status.textContent='Memuat preview dari server sumber...';
-  player.src=downloadUrl;
+  status.textContent='Memuat preview melalui NEXORA...';
+  player.src=downloadUrl + (downloadUrl.includes('?') ? '&' : '?') + 'mode=preview';
   if (!dialog.open) dialog.showModal();
   // A preview click is a user gesture. When autoplay is disallowed, controls
   // remain visible and the visitor can tap Play manually.
@@ -133,10 +133,9 @@ function showResults(data) {
       details.append(make('p','',entry.ready?[entry.quality,entry.mirror?'Server alternatif':'',kind==='video'?'Suara tergantung sumber':''].filter(Boolean).join(' · ') || 'Opsi media tersedia' : (entry.reason || 'Tautan tidak tersedia')));
       item.append(fmt,details);
       if (entry.ready) {
-        if (entry.downloadUrl?.startsWith('/api/download?token=')) {
-          const redirectMode=data.deliveryMode==='redirect';
+        if (entry.downloadUrl?.startsWith('/api/media?token=')) {
           const actions=make('div','result-actions');
-          if(redirectMode && kind==='video'){
+          if(kind==='video'){
             const preview=make('button','download-choice preview-choice','Preview');
             preview.type='button';
             preview.prepend(icon('play'));
@@ -144,31 +143,24 @@ function showResults(data) {
             preview.addEventListener('click',()=>openVideoPreview(entry.downloadUrl,data.title,thumbUrl));
             actions.append(preview);
           }
-          const anchor=make('a','download-choice',redirectMode && kind==='video'?'Download ↗':redirectMode?'Buka media':'Unduh');
+          const anchor=make('a','download-choice','Download');
           anchor.href=entry.downloadUrl;
-          if(redirectMode){anchor.target='_blank';anchor.rel='noopener noreferrer';}
-          anchor.append(icon(redirectMode?'external':'download'));
-          anchor.addEventListener('click',()=>toast(data.deliveryMode==='redirect'
-            ? 'File dibuka dari server sumber. Jika diputar di browser, simpan manual.'
-            : 'Unduhan dimulai jika server media mengizinkan.'));
+          anchor.download='';
+          anchor.append(icon('download'));
+          anchor.addEventListener('click',()=>toast('NEXORA sedang menyiapkan file. Unduhan dimulai jika provider mengizinkan.'));
           actions.append(anchor);
-          const direct=safeHttps(entry.directUrl);
-          if (direct && kind!=='video') {const fallback=make('a','download-choice secondary-link');fallback.href=direct;fallback.target='_blank';fallback.rel='noopener noreferrer';fallback.title='Buka tautan media langsung';fallback.append(icon('external'));fallback.setAttribute('aria-label',`Buka link langsung ${entry.type||''}`);actions.append(fallback);}
           item.append(actions);
         } else {
-          const direct=safeHttps(entry.directUrl);
-          if (direct && kind!=='video') {const anchor=make('a','download-choice','Buka media');anchor.href=direct;anchor.target='_blank';anchor.rel='noopener noreferrer';anchor.append(icon('external'));item.append(anchor);}
+          item.append(make('p','result-note','Link unduhan internal belum tersedia. Silakan analisis ulang.'));
         }
       }
       options.append(item);
     });
   }
   wrap.append(options);
-  const notice=make('p','result-note',data.deliveryMode==='redirect'
-    ? 'Ketuk Preview untuk menonton video dulu, lalu Download / Simpan bila cocok. File dibuka langsung dari sumber, jadi preview/unduhan bisa ditolak provider. Preview dan simpan dengan token yang sama dihitung satu slot pada instance Netlify yang sama; limiter 4 video/24 jam tetap sementara per instance.'
-    : data.proxyEnabled
-      ? 'Mode proxy aktif (maks. 120 MB, batas waktu server berlaku). Jika unduh gagal, coba tautan langsung untuk media non-video. Hanya simpan media yang kamu berhak unduh.'
-      : 'Mode tautan langsung: browser akan membuka file provider. Aktifkan DOWNLOAD_SECRET pada hosting untuk tombol video. Format dan audio bergantung pada sumber.');
+  const notice=make('p','result-note',data.deliveryMode==='edge-proxy'
+    ? 'Preview dan Download diproses melalui domain NEXORA. Mode download tidak membuka website provider. Maksimum 120 MB per respons; sumber tertentu mungkin membatasi streaming. Preview dan download menggunakan token yang sama pada limiter sementara 4 video/24 jam per instance Netlify.'
+    : 'Download internal belum aktif. Periksa konfigurasi DOWNLOAD_SECRET dan coba analisis ulang.');
   wrap.append(notice);
   if(data.truncated)wrap.append(make('p','result-note','Hanya 12 opsi pertama yang ditampilkan untuk menjaga respons server.'));
   target.append(wrap);
@@ -212,7 +204,7 @@ previewPlayer.addEventListener('error',()=>{
   $('#video-preview-status').textContent='Preview tidak bisa diputar dari sumber ini. Coba Download / Simpan, atau analisis ulang bila link sudah kedaluwarsa.';
 });
 previewPlayer.addEventListener('playing',()=>{
-  $('#video-preview-status').textContent='Video sedang diputar dari server sumber. ✨';
+  $('#video-preview-status').textContent='Video diputar melalui NEXORA. ✨';
 });
 
 $('#download-form').addEventListener('submit',async event=>{
