@@ -37,11 +37,17 @@ export default async function handler(request) {
     headers:{'content-length':String(Buffer.byteLength(JSON.stringify(body),'utf8'))},
     body
   },res);
-  // A redirect opens the original media source; Netlify never proxies large videos.
+  // Downloads and previews go through the same-origin Edge media gateway.
+  // The legacy /api/download function is still the signed-token/quota gate.
   try {
     const data = JSON.parse(payloadText);
     if (data && status === 200) {
-      data.deliveryMode = 'redirect';
+      data.deliveryMode = 'edge-proxy';
+      for (const item of data.options || []) {
+        if (typeof item.downloadUrl === 'string' && item.downloadUrl.startsWith('/api/download?token=')) {
+          item.downloadUrl = item.downloadUrl.replace('/api/download?token=', '/api/media?token=');
+        }
+      }
       payloadText = JSON.stringify(data);
     }
   } catch {return json(502,{error:'Respons analisis tidak valid.'});}
