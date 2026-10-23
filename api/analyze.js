@@ -64,7 +64,10 @@ export default async function handler(req,res) {
     const processed = await Promise.all(media.options.map(async (item) => {
       let direct = item.sourceUrl;
       if (!direct.startsWith('https://')) {
-        try { direct = await withTimeout(resolveUrl(direct),7000); }
+        try {
+          const {resolveUrl}=await import('@coflyn/mori/engine.js');
+          direct = await withTimeout(resolveUrl(direct),7000);
+        }
         catch {return {type:item.type,quality:item.quality,kind:item.kind,ready:false,reason:'Server asal belum memberikan tautan langsung.'};}
       }
       let parsedMedia;
