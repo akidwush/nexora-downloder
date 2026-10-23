@@ -23,9 +23,34 @@ const supported = {
   applemusic:['music.apple.com'],bilibili:['bilibili.com','b23.tv','bili.im','bilibili.tv'],
   douyin:['douyin.com'],rednote:['xiaohongshu.com','rednote.com','xhslink.com','xhslink.cn'],
   pixiv:['pixiv.net'],bandcamp:['bandcamp.com'],
-  terabox:['terabox.com','teraboxapp.com','1024tera.com','nephobox.com','4funbox.com','mirrobox.com','momerybox.com','tibibox.com']
+  terabox:['terabox.com','teraboxapp.com','1024tera.com','nephobox.com','4funbox.com','mirrobox.com','momerybox.com','tibibox.com'],
+  soundcloud:['soundcloud.com'],mediafire:['mediafire.com'],sfile:['sfile.mobi','sfile.co'],
+  pixeldrain:['pixeldrain.com'],catbox:['catbox.moe'],krakenfiles:['krakenfiles.com'],
+  gdrive:['drive.google.com','docs.google.com'],
+  doodstream:['doodstream.com','ds2play.com','doods.pro','dood.to','dood.so','dood.ws','dood.pm','dood.wf','dood.cx','dood.sh','dood.watch'],
+  safelinku:['safelinku.com','sfl.gl','semawur.com','safelink.id','sfl.inc','khaddavi.net'],
+  sub2unlock:['sub2unlock.com','sub2unlock.net','sub2unlock.io','sub2unlock.me','sub4unlock.com','sub4unlock.io','sub4unlock.net'],
+  rekonise:['rekonise.com'],unshorten:['bit.ly','tinyurl.com','dub.sh','cutt.ly','t.co','shorturl.at']
 };
-const platformNames = {tiktok:'TikTok',instagram:'Instagram',youtube:'YouTube',facebook:'Facebook',twitter:'X / Twitter',pinterest:'Pinterest',spotify:'Spotify',reddit:'Reddit',threads:'Threads',applemusic:'Apple Music',bilibili:'Bilibili',douyin:'Douyin',rednote:'RedNote',pixiv:'Pixiv',bandcamp:'Bandcamp',terabox:'TeraBox'};
+const platformNames = {tiktok:'TikTok',instagram:'Instagram',youtube:'YouTube',facebook:'Facebook',twitter:'X / Twitter',pinterest:'Pinterest',spotify:'Spotify',reddit:'Reddit',threads:'Threads',applemusic:'Apple Music',bilibili:'Bilibili',douyin:'Douyin',rednote:'RedNote',pixiv:'Pixiv',bandcamp:'Bandcamp',terabox:'TeraBox',soundcloud:'SoundCloud',mediafire:'MediaFire',sfile:'Sfile',pixeldrain:'Pixeldrain',catbox:'Catbox',krakenfiles:'Krakenfiles',gdrive:'Google Drive',doodstream:'Doodstream',safelinku:'Safelinku',sub2unlock:'Sub2Unlock',rekonise:'Rekonise',unshorten:'Unshorten'};
+// Mirrored from the server-side allowlisted provider registry. The server
+// independently validates every selection; these values are display-only.
+const scraperProviders = {
+  tiktok:['tiktokio','tikdownloader','snaptik','savetik','ssstik'],
+  instagram:['indown','snapsave','snapinsta','direct'],
+  youtube:['ytmp3gg','ytmp3','playlist'],
+  facebook:['snapsave','fdown'],
+  twitter:['tvd','savetwt','tweeload','direct'],
+  spotify:['spotidown','soundloaders','spotmate','spotisaver'],
+  pinterest:['pindown','direct'],bandcamp:['direct','bandcampdownloader'],
+  applemusic:['aplmate'],bilibili:['direct'],douyin:['direct'],
+  reddit:['rapidsave'],threads:['threadster'],rednote:['direct'],
+  pixiv:['ajax'],terabox:['sechno'],soundcloud:['klickaud'],
+  mediafire:['mediafire'],sfile:['sfile'],pixeldrain:['pixeldrain'],
+  catbox:['catbox'],krakenfiles:['krakenfiles'],gdrive:['gdrive'],
+  doodstream:['doodstream'],safelinku:['safelinku'],
+  sub2unlock:['sub2unlock'],rekonise:['rekonise'],unshorten:['unshorten']
+};
 let selectedPlatform = 'all';
 let busy = false;
 let toastTimer;
@@ -49,6 +74,22 @@ function detectPlatform(input) {
     return Object.keys(supported).find(key => supported[key].some(host => hostname===host || hostname.endsWith(`.${host}`))) || null;
   } catch { return null; }
 }
+function refreshScraperProviders() {
+  const engine=$('#scraper-engine').value;
+  const field=$('#scraper-provider');
+  const platform=detectPlatform($('#url-input').value) || (selectedPlatform!=='all'?selectedPlatform:null);
+  const previous=field.value;
+  field.replaceChildren(make('option','','Auto (disarankan)'));
+  field.firstElementChild.value='auto';
+  const names=scraperProviders[platform] || [];
+  for (const name of names) {
+    const option=make('option','',name);
+    option.value=name;
+    field.append(option);
+  }
+  field.disabled=engine==='mori' || !platform || !names.length;
+  field.value=engine==='mori'?'auto':names.includes(previous)?previous:'auto';
+}
 function selectPlatform(name, { focus = true } = {}) {
   selectedPlatform = name;
   $$('[data-platform]').forEach(chip => {
@@ -56,8 +97,9 @@ function selectPlatform(name, { focus = true } = {}) {
     chip.classList.toggle('selected',selected);
     chip.setAttribute('aria-pressed',String(selected));
   });
-  const hint = name==='all' ? 'Tempel link dari salah satu dari 16 platform yang tersedia.' : `Silakan tempel link ${platformNames[name] || name} publik.`;
+  const hint = name==='all' ? 'Tempel link dari platform atau host file yang didukung.' : `Silakan tempel link ${platformNames[name] || name} publik.`;
   setFeedback(hint);
+  refreshScraperProviders();
   if (focus) $('#url-input').focus({preventScroll:true});
 }
 function showLoading() {
@@ -119,6 +161,7 @@ function showResults(data) {
   const meta=make('div','result-meta');meta.append(make('b','',data.title || 'Media tanpa judul'));
   const ready=(data.options||[]).filter(x=>x.ready).length;
   meta.append(make('p','', `${data.author?data.author+' · ':''}${ready} opsi tersedia`));
+  if (data.engineUsed) meta.append(make('p','', `Engine: ${data.engineUsed} · Provider: ${data.providerUsed||'auto'}`));
   header.append(thumb,meta,make('span','result-platform',platformNames[data.platform] || data.platform || 'Media'));
   wrap.append(header);
   const options=make('div','result-options');
@@ -127,13 +170,22 @@ function showResults(data) {
   } else {
     data.options.forEach((entry,index) => {
       const item=make('div',`result-option${entry.ready?'':' disabled'}`);
-      const kind=['audio','video','image'].includes(entry.kind)?entry.kind:'video';
-      const fmt=make('div',`format-icon ${kind}`);fmt.append(icon(kind==='image'?'image':kind==='audio'?'music':'video'));
+      const kind=['audio','video','image','file','link'].includes(entry.kind)?entry.kind:'video';
+      const fmt=make('div',`format-icon ${kind}`);fmt.append(icon(kind==='image'?'image':kind==='audio'?'music':kind==='file'||kind==='link'?'link':'video'));
       const details=make('div','result-format');details.append(make('b','',entry.type || `${kind} ${index+1}`));
       details.append(make('p','',entry.ready?[entry.quality,entry.mirror?'Server alternatif':'',kind==='video'?'Suara tergantung sumber':''].filter(Boolean).join(' · ') || 'Opsi media tersedia' : (entry.reason || 'Tautan tidak tersedia')));
       item.append(fmt,details);
       if (entry.ready) {
-        if (entry.downloadUrl?.startsWith('/api/media?token=')) {
+        if (kind==='link' && safeHttps(entry.targetUrl)) {
+          const action=make('button','download-choice secondary-link','Salin link tujuan');
+          action.type='button';
+          action.addEventListener('click',async()=>{
+            try {await navigator.clipboard.writeText(entry.targetUrl);toast('Link tujuan disalin. Periksa domain sebelum membukanya.');}
+            catch {toast('Tidak bisa menyalin otomatis. Gunakan browser untuk menyalin link.');}
+          });
+          item.append(action);
+          details.append(make('p','',`Tujuan: ${entry.targetHost||'domain eksternal'} · Link belum diverifikasi sebagai media`));
+        } else if (entry.downloadUrl?.startsWith('/api/media?token=')) {
           const actions=make('div','result-actions');
           if(kind==='video'){
             const preview=make('button','download-choice preview-choice','Preview');
@@ -158,6 +210,23 @@ function showResults(data) {
     });
   }
   wrap.append(options);
+  if (Array.isArray(data.collectionItems) && data.collectionItems.length) {
+    const collection=make('div','collection-list');
+    collection.append(make('b','','Item dalam album / playlist (maksimal 20):'));
+    for (const media of data.collectionItems) {
+      const row=make('div','collection-item');
+      const title=make('span','',media.title||'Item');
+      const analyze=make('button','retry-button','Analisis item ↗');
+      analyze.type='button';
+      analyze.addEventListener('click',()=>{
+        $('#url-input').value=media.url;
+        selectPlatform(detectPlatform(media.url)||'all',{focus:false});
+        $('#download-form').requestSubmit();
+      });
+      row.append(title,analyze);collection.append(row);
+    }
+    wrap.append(collection);
+  }
   const notice=make('p','result-note',data.deliveryMode==='edge-proxy'
     ? 'Preview dan Download diproses melalui domain NEXORA. Mode download tidak membuka website provider. Maksimum 120 MB per respons; sumber tertentu mungkin membatasi streaming. Preview dan download menggunakan token yang sama pada limiter sementara 4 video/24 jam per instance Netlify.'
     : 'Download internal belum aktif. Periksa konfigurasi DOWNLOAD_SECRET dan coba analisis ulang.');
@@ -215,13 +284,13 @@ $('#download-form').addEventListener('submit',async event=>{
   try{parsed=new URL(value);}catch{setFeedback('URL tidak valid. Pastikan dimulai dengan https://',true);return;}
   const detected=detectPlatform(value);
   if(parsed.protocol!=='https:' || parsed.username || parsed.password || parsed.port){setFeedback('Hanya link HTTPS publik yang diizinkan.',true);return;}
-  if(!detected){setFeedback('Domain ini belum didukung. Coba salah satu dari 16 platform yang tersedia.',true);return;}
+  if(!detected){setFeedback('Domain ini belum didukung oleh Nexora.',true);return;}
   if(selectedPlatform!=='all' && selectedPlatform!==detected){selectPlatform(detected,{focus:false});toast('Platform otomatis disesuaikan dengan link.');}
   busy=true;const button=$('#analyze-btn');button.disabled=true;button.querySelector('span').textContent='Analyzing...';
   setFeedback(`Sedang menganalisis tautan ${platformNames[detected]}...`);showLoading();
   const controller=new AbortController();const timeout=setTimeout(()=>controller.abort(),51000);
   try {
-    const response=await fetch('/api/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:value}),signal:controller.signal,cache:'no-store'});
+    const response=await fetch('/api/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:value,engine:$('#scraper-engine').value,provider:$('#scraper-provider').value}),signal:controller.signal,cache:'no-store'});
     const data=await response.json().catch(()=>({error:'Respons server tidak valid.'}));
     if(!response.ok)throw new Error(data.error||`Server mengembalikan status ${response.status}.`);
     showResults(data);saveHistory(value,data);
@@ -235,16 +304,19 @@ $('#paste-button').addEventListener('click',async()=>{
     if(!text){toast('Clipboard kamu masih kosong.');return;}
     $('#url-input').value=text;
     const detected=detectPlatform(text);selectPlatform(detected && $$('[data-platform]').some(x=>x.dataset.platform===detected)?detected:'all');
+    refreshScraperProviders();
     toast('Link berhasil ditempel! ♡');
   }catch{toast('Akses clipboard ditolak. Tempel manual di kolom URL.');$('#url-input').focus();}
 });
+$('#scraper-engine').addEventListener('change',refreshScraperProviders);
 $('#url-input').addEventListener('input',()=>{
   if($('#url-input').value.trim()) {const detected=detectPlatform($('#url-input').value);if(detected && $('[data-platform]').some(x=>x.dataset.platform===detected)) selectPlatform(detected,{focus:false});else setFeedback('Tips: gunakan link publik yang bisa diakses tanpa login.');}
   else setFeedback('Tips: gunakan link publik yang bisa diakses tanpa login.');
+  refreshScraperProviders();
 });
-$$('[data-platform]').forEach(btn=>{btn.addEventListener('click',()=>selectPlatform(btn.dataset.platform));btn.setAttribute('aria-pressed',String(btn.classList.contains('selected')));});
+$('[data-platform]').forEach(btn=>{btn.addEventListener('click',()=>selectPlatform(btn.dataset.platform));btn.setAttribute('aria-pressed',String(btn.classList.contains('selected')));});
 $('#clear-history').addEventListener('click',()=>{try{localStorage.removeItem(historyKey);}catch{}renderHistory();toast('Riwayat lokal sudah dihapus.');});
 $('#mobile-menu-btn').addEventListener('click',()=>{const menu=$('#mobile-nav');const open=menu.hidden;menu.hidden=!open;$('#mobile-menu-btn').setAttribute('aria-expanded',String(open));$('#mobile-menu-btn').replaceChildren(icon(open?'close':'menu'));});
 $$('#mobile-nav a').forEach(link=>link.addEventListener('click',()=>{$('#mobile-nav').hidden=true;$('#mobile-menu-btn').setAttribute('aria-expanded','false');$('#mobile-menu-btn').replaceChildren(icon('menu'));}));
-$('#year').textContent=String(new Date().getFullYear());renderHistory();
+$('#year').textContent=String(new Date().getFullYear());refreshScraperProviders();renderHistory();
 
