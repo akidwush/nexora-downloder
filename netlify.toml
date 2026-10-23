@@ -20,6 +20,13 @@
     X-Frame-Options = "DENY"
     Referrer-Policy = "strict-origin-when-cross-origin"
 
+# The media streaming gateway may be opened inside an invisible same-origin
+# frame, so Chrome can save large attachments without navigating the main page.
+[[headers]]
+  for = "/api/media"
+  [headers.values]
+    X-Frame-Options = "SAMEORIGIN"
+
 [[headers]]
   for = "/api/*"
   [headers.values]
