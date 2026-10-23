@@ -31,6 +31,8 @@ test('media extensions match direct URLs or provider labels',()=>{
   assert.equal(extensionForMedia({kind:'audio',type:'Audio'},'https://cdn.example.org/clip.ogg'),'ogg');
   assert.equal(extensionForMedia({kind:'image',type:'Photo PNG'},'https://cdn.example.org/file'),'png');
   assert.equal(extensionForMedia({kind:'video',type:'MP4'},'https://cdn.example.org/v'),'mp4');
+  assert.equal(extensionForMedia({kind:'file',type:'Document'},'https://cdn.example.org/report.pdf'),'pdf');
+  assert.equal(extensionForMedia({kind:'file',type:'File'},'https://cdn.example.org/resource'),'bin');
 });
 test('analyze rejects oversized bodies before provider import',async()=>{
   const res=mockRes();
