@@ -123,6 +123,122 @@ function showError(message) {
 function safeHttps(value) {
   try { const url=new URL(value); return url.protocol === 'https:' ? url.href : ''; } catch {return '';}
 }
+// Download from the current page rather than navigating Chrome Android to a
+// JSON/media endpoint (which can show a blank tab before the download prompt).
+const MAX_BLOB_DOWNLOAD = 32 * 1024 * 1024;
+const activeDownloads = new Set();
+function downloadFilename(disposition, fallback) {
+  const encoded = /filename\\*\\s*=\\s*UTF-8''([^;]+)/i.exec(disposition || '');
+  const plain = /filename\\s*=\\s*"([^"]*)"|filename\\s*=\\s*([^;]+)/i.exec(disposition || '');
+  let name = fallback;
+  if (encoded) {
+    try { name = decodeURIComponent(encoded[1].trim()); } catch {}
+  } else if (plain) name = (plain[1] || plain[2] || fallback).trim();
+  return String(name).replace(/[\\x00-\\x1f\\x7f\\/\\\\:<>|?*"\\r\\n]/g, '_').slice(0, 120) || fallback;
+}
+function isNexoraMediaUrl(value) {
+  try {
+    const url = new URL(value, location.href);
+    return url.origin === location.origin && url.pathname === '/api/media' &&
+      url.searchParams.has('token');
+  } catch { return false; }
+}
+// Browser-owned streaming is needed for large files; a hidden same-origin
+// iframe keeps the document URL, scroll, and history unchanged.
+function streamDownloadInFrame(url) {
+  const frame = document.createElement('iframe');
+  frame.hidden = true;
+  frame.tabIndex = -1;
+  frame.setAttribute('aria-hidden', 'true');
+  frame.setAttribute('title', 'Unduhan Nexora');
+  frame.style.display = 'none';
+  frame.addEventListener('load', () => {
+    // Successful attachments usually do not emit a load event. If an expired
+    // token instead returns JSON, display the error rather than a blank page.
+    try {
+      const content = frame.contentDocument?.body?.textContent || '';
+      const data = JSON.parse(content);
+      if (data?.error) toast(String(data.error).slice(0, 240));
+    } catch { /* A file download is not a readable iframe document. */ }
+  });
+  document.body.append(frame);
+  frame.src = url;
+  setTimeout(() => frame.remove(), 120000);
+}
+async function downloadWithoutNavigation(url, kind, control) {
+  if (!isNexoraMediaUrl(url)) {
+    toast('Link download tidak valid. Coba analisis ulang.');
+    return;
+  }
+  if (activeDownloads.has(url)) {
+    toast('Unduhan ini sedang diproses.');
+    return;
+  }
+  activeDownloads.add(url);
+  control?.setAttribute('aria-busy', 'true');
+  try {
+    // For video, large files and archives, never buffer the entire download
+    // into mobile RAM. Keep browser-native streaming within a hidden iframe.
+    if (kind !== 'audio' && kind !== 'image') {
+      streamDownloadInFrame(url);
+      toast('NEXORA menyiapkan unduhan tanpa meninggalkan halaman. ♡');
+      return;
+    }
+    const response = await fetch(url, {cache:'no-store', redirect:'error'});
+    if (!response.ok) {
+      let message = 'Download gagal. Silakan analisis ulang tautan.';
+      try { message = String((await response.json()).error || message); } catch {}
+      throw new Error(message);
+    }
+    const length = Number(response.headers.get('Content-Length') || 0);
+    if (length > MAX_BLOB_DOWNLOAD) {
+      await response.body?.cancel();
+      streamDownloadInFrame(url);
+      toast('File besar: browser melanjutkan unduhan tanpa pindah halaman.');
+      return;
+    }
+    const filename = downloadFilename(response.headers.get('Content-Disposition'),
+      kind === 'audio' ? 'nexora-audio.mp3' : 'nexora-image.jpg');
+    let blob;
+    if (response.body?.getReader) {
+      const reader = response.body.getReader();
+      const chunks = [];
+      let total = 0;
+      while (true) {
+        const {done, value} = await reader.read();
+        if (done) break;
+        total += value.byteLength;
+        if (total > MAX_BLOB_DOWNLOAD) {
+          await reader.cancel();
+          streamDownloadInFrame(url);
+          toast('File besar: browser melanjutkan unduhan tanpa pindah halaman.');
+          return;
+        }
+        chunks.push(value);
+      }
+      blob = new Blob(chunks, {type:response.headers.get('Content-Type') || 'application/octet-stream'});
+    } else {
+      blob = await response.blob();
+      if (blob.size > MAX_BLOB_DOWNLOAD) throw new Error('File terlalu besar untuk disimpan dalam memori HP.');
+    }
+    const blobUrl = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = blobUrl;
+    anchor.download = filename;
+    anchor.hidden = true;
+    document.body.append(anchor);
+    anchor.click();
+    anchor.remove();
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+    toast('Unduhan disiapkan tanpa membuka halaman lain. ♡');
+  } catch(error) {
+    toast(String(error?.message || 'Gagal mengunduh. Coba analisis ulang.').slice(0, 240));
+  } finally {
+    control?.removeAttribute('aria-busy');
+    activeDownloads.delete(url);
+  }
+}
+
 // Signed media is streamed through the same-origin Netlify Edge gateway.
 // Provider restrictions may still prevent playback or downloading.
 function openVideoPreview(downloadUrl, title, posterUrl) {
@@ -201,7 +317,10 @@ function showResults(data) {
           anchor.href=entry.downloadUrl;
           anchor.download='';
           anchor.append(icon('download'));
-          anchor.addEventListener('click',()=>toast('NEXORA sedang menyiapkan file. Unduhan dimulai jika provider mengizinkan.'));
+          anchor.addEventListener('click',event=>{
+            event.preventDefault();
+            void downloadWithoutNavigation(entry.downloadUrl,kind,anchor);
+          });
           actions.append(anchor);
           item.append(actions);
         } else {
@@ -265,6 +384,10 @@ const previewDialog=$('#video-preview-dialog');
 const previewPlayer=$('#video-preview-player');
 $('#video-preview-close').addEventListener('click',stopVideoPreview);
 $('#video-preview-done').addEventListener('click',stopVideoPreview);
+$('#video-preview-save').addEventListener('click',event=>{
+  event.preventDefault();
+  void downloadWithoutNavigation($('#video-preview-save').getAttribute('href'),'video',event.currentTarget);
+});
 previewDialog.addEventListener('click',event=>{if(event.target===previewDialog) stopVideoPreview();});
 previewDialog.addEventListener('close',()=>{
   previewPlayer.pause();
