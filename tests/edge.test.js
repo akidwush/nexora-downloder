@@ -37,6 +37,7 @@ test('Edge streams the media with attachment disposition; no 302 to visitor',asy
     assert.equal(response.status,200);
     assert.equal(response.headers.get('Location'),null);
     assert.equal(response.headers.get('Content-Disposition'),'attachment; filename="test-video.mp4"');
+    assert.equal(response.headers.get('X-Frame-Options'),'SAMEORIGIN');
     assert.deepEqual(new Uint8Array(await response.arrayBuffer()),expected);
     assert.match(fake.calls[0].url,/^https:\/\/nexora-demo\.netlify\.app\/api\/download\?token=/);
     assert.equal(fake.calls[1].url,'https://cdn.example.com/video.mp4');
