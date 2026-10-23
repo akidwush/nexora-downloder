@@ -19,3 +19,11 @@ jobs:
           node --input-type=module -e "const scraper = (await import('@coflyn/scrapr')).default; if (!scraper?.tiktok?.snaptik || !scraper?.resolver?.mediafire) throw Error('Scrapr exports missing');"
       - run: npm run check
       - run: npm test
+      - name: Verify downloads do not navigate Chrome Android page
+        run: |
+          npm install --no-save --omit=optional --no-audit --no-fund puppeteer-core@24.21.0
+          export CHROME_PATH="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
+          test -n "$CHROME_PATH"
+          python3 -m http.server 8765 --directory public > /tmp/nexora-static.log 2>&1 &
+          sleep 2
+          node scripts/test-download-navigation.mjs
