@@ -128,13 +128,13 @@ function safeHttps(value) {
 const MAX_BLOB_DOWNLOAD = 32 * 1024 * 1024;
 const activeDownloads = new Set();
 function downloadFilename(disposition, fallback) {
-  const encoded = /filename\\*\\s*=\\s*UTF-8''([^;]+)/i.exec(disposition || '');
-  const plain = /filename\\s*=\\s*"([^"]*)"|filename\\s*=\\s*([^;]+)/i.exec(disposition || '');
+  const encoded = /filename\*\s*=\s*UTF-8''([^;]+)/i.exec(disposition || '');
+  const plain = /filename\s*=\s*"([^"]*)"|filename\s*=\s*([^;]+)/i.exec(disposition || '');
   let name = fallback;
   if (encoded) {
     try { name = decodeURIComponent(encoded[1].trim()); } catch {}
   } else if (plain) name = (plain[1] || plain[2] || fallback).trim();
-  return String(name).replace(/[\\x00-\\x1f\\x7f\\/\\\\:<>|?*"\\r\\n]/g, '_').slice(0, 120) || fallback;
+  return String(name).replace(/[\x00-\x1f\x7f\/\\:<>|?*"\r\n]/g, '_').slice(0, 120) || fallback;
 }
 function isNexoraMediaUrl(value) {
   try {
