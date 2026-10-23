@@ -13,5 +13,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - run: npm install --omit=optional --no-audit --no-fund
+      - name: Verify Scrapr module export
+        run: |
+          node --input-type=module -e "const scraper = (await import('@coflyn/scrapr')).default; if (!scraper?.tiktok?.snaptik || !scraper?.resolver?.mediafire) throw Error('Scrapr exports missing');"
       - run: npm run check
       - run: npm test

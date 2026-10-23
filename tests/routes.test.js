@@ -31,6 +31,8 @@ test('media extensions match direct URLs or provider labels',()=>{
   assert.equal(extensionForMedia({kind:'audio',type:'Audio'},'https://cdn.example.org/clip.ogg'),'ogg');
   assert.equal(extensionForMedia({kind:'image',type:'Photo PNG'},'https://cdn.example.org/file'),'png');
   assert.equal(extensionForMedia({kind:'video',type:'MP4'},'https://cdn.example.org/v'),'mp4');
+  assert.equal(extensionForMedia({kind:'file',type:'Document'},'https://cdn.example.org/report.pdf'),'pdf');
+  assert.equal(extensionForMedia({kind:'file',type:'File'},'https://cdn.example.org/resource'),'bin');
 });
 test('analyze rejects oversized bodies before provider import',async()=>{
   const res=mockRes();
@@ -126,14 +128,15 @@ test('video preview modal is available, accessible, and uses existing signed dow
   assert.match(html,/<dialog class="video-preview-dialog" id="video-preview-dialog"/);
   assert.match(html,/id="video-preview-player"[^>]*controls playsinline preload="none"/);
   assert.match(html,/id="video-preview-close" aria-label="Tutup preview"/);
-  assert.match(html,/id="video-preview-save"[^>]*target="_blank"/);
+  assert.doesNotMatch(html,/id="video-preview-save"[^>]*target="_blank"/);
   assert.match(css,/\.video-preview-dialog::backdrop/);
   assert.match(css,/\.result-actions\{display:flex/);
   assert.match(css,/@media\(max-width:700px\)\{\s*\.result-option\{flex-wrap:wrap\}/);
-  assert.match(app,/if\(redirectMode && kind==='video'\)/);
+  assert.match(app,/if\(kind==='video'\)/);
   assert.match(app,/openVideoPreview\(entry\.downloadUrl,data\.title,thumbUrl\)/);
   assert.match(app,/player\.src=downloadUrl/);
   assert.match(app,/previewDialog\.addEventListener\('close'/);
   // A direct provider URL must not be exposed for video in the analyze UI.
-  assert.match(app,/if \(direct && kind!=='video'\)/);
+  assert.match(app,/entry\.downloadUrl\?\.startsWith\('\/api\/media\?token='\)/);
+  assert.doesNotMatch(app,/window\.open\(/);
 });

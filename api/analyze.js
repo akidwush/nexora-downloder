@@ -2,6 +2,7 @@ import { validateSource, normalizeMedia } from '../lib/platforms.js';
 import { assertRemoteUrl, filenameFromMeta, isStreamManifest } from '../lib/safety.js';
 import { hasDownloadProxy, makeDownloadToken } from '../lib/token.js';
 import { isVideoLimiterConfigured, VIDEO_LIMIT } from '../lib/quota.js';
+import { scrapeWithFallback, LINK_ONLY_PLATFORMS } from '../lib/scraper-router.js';
 
 export const config = { maxDuration: 60 };
 function json(res, status, payload) {
@@ -14,7 +15,8 @@ export function extensionForMedia(item, directUrl = '') {
   const allowed = {
     audio: ['mp3','m4a','aac','flac','ogg','opus','wav'],
     image: ['jpg','jpeg','png','webp','gif','avif'],
-    video: ['mp4','webm','mov','m4v','mkv']
+    video: ['mp4','webm','mov','m4v','mkv'],
+    file: ['zip','rar','7z','pdf','txt','json','apk','bin','epub']
   };
   const formats = allowed[item.kind] || allowed.video;
   let pathExtension = '';
@@ -23,7 +25,7 @@ export function extensionForMedia(item, directUrl = '') {
   const label = String(item.type || '') + ' ' + String(item.quality || '');
   const fromLabel = formats.find(ext => new RegExp('(?:^|[^a-z0-9])' + ext + '(?:$|[^a-z0-9])', 'i').test(label));
   if (fromLabel) return fromLabel === 'jpeg' ? 'jpg' : fromLabel;
-  return item.kind === 'audio' ? 'mp3' : item.kind === 'image' ? 'jpg' : 'mp4';
+  return item.kind === 'audio' ? 'm4a' : item.kind === 'image' ? 'jpg' : item.kind === 'file' ? 'bin' : 'mp4';
 }
 /** Clear timers on both success and failure (including scraper errors). */
 export function withTimeout(promise, ms) {
@@ -46,36 +48,57 @@ export default async function handler(req,res) {
   try {
     if (Number(req.headers?.['content-length']||0)>4096) return json(res,413,{error:'Data terlalu besar.'});
     const {url,platform} = validateSource(req.body?.url);
-    // Lazy import prevents Mori bundle loading until a valid supported URL is given.
-    const {scrapeUrl,resolveUrl} = await import('@coflyn/mori/engine.js');
-    const raw = await withTimeout(scrapeUrl(url,'auto'),40000);
+    const engine=String(req.body?.engine||'auto');
+    const provider=String(req.body?.provider||'auto');
+    // Import both engines lazily, after the strict host allowlist has passed.
+    // Scrapr is loaded only when necessary; no OTA install in a serverless function.
+    const raw = await scrapeWithFallback({
+      url,platform,engine,provider,
+      scrapeMori: async (source,preference) => {
+        const {scrapeUrl}=await import('@coflyn/mori/engine.js');
+        return scrapeUrl(source,preference);
+      },
+      loadScrapr: () => import('@coflyn/scrapr')
+    });
     const media = normalizeMedia(raw,platform);
     const processed = await Promise.all(media.options.map(async (item) => {
       let direct = item.sourceUrl;
       if (!direct.startsWith('https://')) {
-        try { direct = await withTimeout(resolveUrl(direct),7000); }
+        try {
+          const {resolveUrl}=await import('@coflyn/mori/engine.js');
+          direct = await withTimeout(resolveUrl(direct),7000);
+        }
         catch {return {type:item.type,quality:item.quality,kind:item.kind,ready:false,reason:'Server asal belum memberikan tautan langsung.'};}
       }
       let parsedMedia;
       try {parsedMedia = assertRemoteUrl(direct);} catch {return {type:item.type,quality:item.quality,kind:item.kind,ready:false,reason:'URL media ditolak oleh pemeriksaan keamanan.'};}
+      // Shortlinks are metadata only: never stream arbitrary resolver targets.
+      if (LINK_ONLY_PLATFORMS.has(platform) || item.kind==='link') {
+        return {type:'Link tujuan',quality:item.quality,kind:'link',ready:true,
+          targetUrl:parsedMedia.href,targetHost:parsedMedia.hostname};
+      }
       if (isStreamManifest(parsedMedia.href)) {
         return {type:item.type,quality:item.quality,kind:item.kind,ready:false,reason:'Stream HLS/DASH perlu digabung dan belum didukung sebagai file tunggal.'};
       }
       const name = filenameFromMeta(media.title,extensionForMedia(item,direct));
       // Never leak a playable video URL before a server-side quota check.
       // With no shared database, enforce the best-effort per-process IP quota only at download time.
-      if (item.kind === 'video' && !isVideoLimiterConfigured()) {
+      if (!['audio','image'].includes(item.kind) && !isVideoLimiterConfigured()) {
         return {type:item.type,quality:item.quality,kind:item.kind,ready:false,
           reason:'Download video sementara tidak tersedia (DOWNLOAD_SECRET belum dikonfigurasi).'};
       }
       const token = makeDownloadToken({url:direct,filename:name,headers:item.headers,kind:item.kind});
-      return {type:item.type,quality:item.quality,kind:item.kind,ready:true,mirror:item.isMirror,
-        ...(item.kind === 'video' ? {} : {directUrl:direct}),
-        downloadUrl:token?`/api/download?token=${encodeURIComponent(token)}`:null};
+      return token
+        ? {type:item.type,quality:item.quality,kind:item.kind,ready:true,mirror:item.isMirror,
+            downloadUrl:`/api/download?token=${encodeURIComponent(token)}`}
+        : {type:item.type,quality:item.quality,kind:item.kind,ready:false,
+            reason:'Unduhan internal belum dikonfigurasi.'};
     }));
     const options = selectDownloadOptions(processed);
     return json(res,200,{ok:true,platform,title:media.title,author:media.author,
-      thumbnail:media.thumbnail,options,proxyEnabled:hasDownloadProxy(),videoLimit:VIDEO_LIMIT,videoLimiterEnabled:isVideoLimiterConfigured(),videoLimiterPersistent:false,truncated:media.options.length>options.length,
+      thumbnail:media.thumbnail,options,collectionItems:media.collectionItems,
+      engineUsed:raw.engineUsed,providerUsed:raw.providerUsed,
+      proxyEnabled:hasDownloadProxy(),videoLimit:VIDEO_LIMIT,videoLimiterEnabled:isVideoLimiterConfigured(),videoLimiterPersistent:false,truncated:media.options.length>options.length,
       notice:'Ketersediaan format mengikuti sumber. Kualitas/audio tidak dijamin pada setiap link.'});
   } catch (error) {
     const expected = /platform|URL|tautan|HTTPS|tidak valid|tidak didukung/i.test(error?.message || '');

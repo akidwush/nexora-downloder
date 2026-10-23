@@ -252,3 +252,24 @@ html,body{max-width:100%;overflow-x:clip}
   .history-item .history-p{padding:7px;font-size:11px}
   .history-item button{padding:6px 9px}
 }
+
+
+/* Hybrid scraper controls and compact album results (mobile-first). */
+.scraper-settings{margin:0 0 24px;padding:11px 14px;border:2px dashed #c6ad9d;border-radius:14px;background:#fffaf0}
+.scraper-settings summary{cursor:pointer;font:700 13px var(--display);color:var(--brown)}
+.scraper-controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:15px 0 8px}
+.scraper-controls label{display:grid;gap:6px;min-width:0;font:700 12px var(--display)}
+.scraper-controls select{width:100%;min-width:0;max-width:100%;border:2px solid var(--brown);border-radius:10px;background:#fff;padding:10px;font:600 13px var(--sans);color:var(--brown)}
+.scraper-controls select:disabled{opacity:.55;cursor:not-allowed}
+.scraper-settings p{margin:8px 0 0;font-size:11px;color:var(--muted);line-height:1.5}
+.format-icon.file,.format-icon.link{background:#e7e9ff}
+.collection-list{display:grid;gap:9px;min-width:0}
+.collection-list>b{font:700 14px var(--display)}
+.collection-item{display:flex;justify-content:space-between;align-items:center;gap:10px;min-width:0;padding:11px;border:2px solid #dcc9b8;border-radius:11px;background:#fffaf0}
+.collection-item span{flex:1;min-width:0;font-size:12px;overflow-wrap:anywhere}
+.collection-item button{flex-shrink:0}
+@media(max-width:700px){
+  .scraper-controls{grid-template-columns:minmax(0,1fr)}
+  .collection-item{align-items:flex-start;flex-direction:column}
+  .collection-item button{max-width:100%}
+}

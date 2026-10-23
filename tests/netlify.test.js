@@ -13,7 +13,7 @@ test('Netlify configuration uses static HTML and three native function routes',(
   const config=fs.readFileSync(new URL('../netlify.toml',import.meta.url),'utf8');
   assert.match(config,/publish\s*=\s*"public"/);
   assert.match(config,/directory\s*=\s*"netlify\/functions"/);
-  assert.match(config,/external_node_modules\s*=\s*\["\@coflyn\/mori"\]/);
+  assert.match(config,/external_node_modules\s*=\s*\[[^\]]*"@coflyn\/mori"[^\]]*"@coflyn\/scrapr"[^\]]*\]/);
   assert.equal(healthConfig.path,'/api/health');
   assert.equal(analyzeConfig.path,'/api/analyze');
   assert.equal(downloadConfig.path,'/api/download');

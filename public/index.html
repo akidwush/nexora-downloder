@@ -88,6 +88,23 @@
       <div class="section-lead center"><span class="tiny-pill"><svg><use href="#i-spark"/></svg> START HERE</span><h2>One link, <span>so many possibilities!</span></h2><p>Tempel tautan konten publik dari platform favoritmu dan cek opsi media yang tersedia.</p></div>
       <div class="downloader-card"><div class="card-corner">✺</div><div class="downloader-top"><div class="downloader-icon"><svg><use href="#i-link"/></svg></div><div><h3>Paste your link here! <span>♡</span></h3><p>Siap mengubah link jadi pilihan unduhan?</p></div><div class="online-pill"><span class="pulse-dot"></span> NEXORA STUDIO</div></div>
         <form id="download-form" novalidate><label class="field-label" for="url-input">TAUTAN VIDEO / FOTO / AUDIO</label><div class="url-field" id="url-field"><span class="url-icon"><svg><use href="#i-link"/></svg></span><input type="url" id="url-input" inputmode="url" autocomplete="url" autocapitalize="off" spellcheck="false" maxlength="2200" placeholder="https://www.tiktok.com/@username/video/..." required aria-describedby="url-feedback"/><button type="button" class="paste-button" id="paste-button"><svg><use href="#i-copy"/></svg> <span>Paste</span></button></div><p class="field-feedback" id="url-feedback" role="status" aria-live="polite">Tips: gunakan link publik yang bisa diakses tanpa login.</p>
+          <details class="scraper-settings"><summary>⚙ Pilih engine / server alternatif (opsional)</summary>
+            <div class="scraper-controls">
+              <label for="scraper-engine">Engine
+                <select id="scraper-engine" aria-label="Engine scraper">
+                  <option value="auto">Auto · Mori → Scrapr fallback</option>
+                  <option value="mori">Mori Core</option>
+                  <option value="scrapr">Scrapr</option>
+                </select>
+              </label>
+              <label for="scraper-provider">Provider
+                <select id="scraper-provider" aria-label="Provider scraper">
+                  <option value="auto">Auto (disarankan)</option>
+                </select>
+              </label>
+            </div>
+            <p>Provider yang tersedia bergantung pada platform. Jika otomatis gagal, coba Scrapr atau server lain.</p>
+          </details>
           <div class="form-bottom"><div class="platform-quick"><span>Pilih platform:</span><button type="button" class="chip selected" data-platform="all">✦ Semua</button><button type="button" class="chip" data-platform="tiktok">♪ TikTok</button><button type="button" class="chip" data-platform="instagram">◎ Instagram</button><button type="button" class="chip" data-platform="youtube">▶ YouTube</button><button type="button" class="chip" data-platform="facebook">f Facebook</button></div><button type="submit" class="btn btn-yellow btn-analyze" id="analyze-btn"><svg><use href="#i-spark"/></svg><span>Analyze Link</span><svg><use href="#i-arrow"/></svg></button></div>
         </form>
         <p class="quota-pill" role="note">🎬 Maksimal 4 video per 24 jam per IP (limiter sementara per server; dapat reset setelah restart atau pindah instance).</p>
@@ -104,7 +121,7 @@
       <span class="emoji hide-on-mobile" style="--x:9%;--y:83%;--size:36px;--delay:-3.7s">🍒</span>
       <span class="emoji hide-on-mobile" style="--x:90%;--y:80%;--size:42px;--delay:-5s">☁️</span>
     </div>
-    <div class="container"><div class="section-head"><div><span class="tiny-pill pink-pill">✿ ONE PLACE, MANY PLATFORMS</span><h2>Your favorite apps,<br/><span>all in one spot.</span></h2><p>Mulai dari Reels sampai video pendek dan gambar — kamu bisa mencoba tautan dari 16 platform berikut.</p></div><div class="platform-doodle" aria-hidden="true">✳<span>♡</span></div></div>
+    <div class="container"><div class="section-head"><div><span class="tiny-pill pink-pill">✿ ONE PLACE, MANY PLATFORMS</span><h2>Your favorite apps,<br/><span>all in one spot.</span></h2><p>Mulai dari Reels sampai video pendek dan gambar — kamu bisa mencoba tautan dari 28 kategori platform dan resolver yang tersedia.</p></div><div class="platform-doodle" aria-hidden="true">✳<span>♡</span></div></div>
       <div class="platform-grid">
         <article class="platform-card"><div class="platform-icon tiktok">♪</div><h3>TikTok</h3><p>Video & foto slide</p><span class="platform-arrow">↗</span></article>
         <article class="platform-card"><div class="platform-icon instagram">◎</div><h3>Instagram</h3><p>Reels, post & story</p><span class="platform-arrow">↗</span></article>
@@ -115,7 +132,7 @@
         <article class="platform-card"><div class="platform-icon spotify">♫</div><h3>Spotify</h3><p>Musik & playlist*</p><span class="platform-arrow">↗</span></article>
         <article class="platform-card"><div class="platform-icon reddit">●</div><h3>Reddit</h3><p>Video & galeri foto</p><span class="platform-arrow">↗</span></article>
       </div>
-      <div class="more-platforms"><div><span class="more-icon">✧</span><b>And 8 more!</b><p>Threads, Apple Music, Bilibili, Douyin, RedNote, Pixiv, Bandcamp, TeraBox</p></div><a href="#download">Try a link <svg><use href="#i-arrow"/></svg></a></div>
+      <div class="more-platforms"><div><span class="more-icon">✧</span><b>And 20 more!</b><p>Threads, Apple Music, Bilibili, Douyin, RedNote, Pixiv, Bandcamp, TeraBox, SoundCloud, serta host file dan resolver publik</p></div><a href="#download">Try a link <svg><use href="#i-arrow"/></svg></a></div>
       <p class="platform-disclaimer">*Dukungan dan format aktual bergantung pada engine Mori dan layanan sumber. Konten privat/DRM mungkin tidak tersedia.</p>
     </div></section>
 
