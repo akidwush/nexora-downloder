@@ -40,6 +40,50 @@ try {
     const element=await page.$('.downloader-card');
     await element.screenshot({path:`docs/screenshots/hybrid-${item.label}.png`});
     console.log('BROWSER_AUDIT '+JSON.stringify({view:item.label,...settings,errors}));
+
+    // Exercise the end-to-end client render without consuming third-party
+    // bandwidth. Only the browser API response is mocked; UI is real.
+    await page.evaluate(()=>{
+      const originalFetch=window.fetch.bind(window);
+      window.fetch=(input,options={})=>{
+        if(new URL(input,location.href).pathname!=='/api/analyze')return originalFetch(input,options);
+        window.__testAnalyzeRequest=JSON.parse(options.body);
+        return Promise.resolve(new Response(JSON.stringify({
+          ok:true,platform:'tiktok',title:'Contoh hasil audit',author:'NEXORA test',
+          engineUsed:'scrapr',providerUsed:'snaptik',deliveryMode:'edge-proxy',
+          options:[
+            {kind:'video',type:'MP4',quality:'720p',ready:true,downloadUrl:'/api/media?token=video-demo'},
+            {kind:'audio',type:'MP3',quality:'128kbps',ready:true,downloadUrl:'/api/media?token=audio-demo'},
+            {kind:'file',type:'PDF',quality:'Original',ready:true,downloadUrl:'/api/media?token=file-demo'},
+            {kind:'link',type:'Resolved link',quality:'Destination',ready:true,
+             targetUrl:'https://example.com/authorised',targetHost:'example.com'}
+          ],
+          collectionItems:[{title:'Item playlist',url:'https://www.tiktok.com/@example/video/1234567890123456789'}]
+        }),{status:200,headers:{'Content-Type':'application/json'}}));
+      };
+    });
+    await page.click('#analyze-btn');
+    await page.waitForSelector('.result-ready');
+    const rendered=await page.evaluate(()=>({
+      payload:window.__testAnalyzeRequest,
+      entries:document.querySelectorAll('.result-option').length,
+      preview:document.querySelectorAll('.preview-choice').length,
+      downloads:document.querySelectorAll('a[href^="/api/media?token="]').length,
+      collections:document.querySelectorAll('.collection-item').length,
+      copyLink:[...document.querySelectorAll('button')].some(el=>el.textContent.includes('Salin link tujuan')),
+      cardRight:document.querySelector('.downloader-card').getBoundingClientRect().right
+    }));
+    assert.equal(rendered.payload?.engine,'scrapr');
+    assert.equal(rendered.payload?.provider,'snaptik');
+    assert.equal(rendered.entries,4);
+    assert.equal(rendered.preview,1);
+    assert.equal(rendered.downloads,3);
+    assert.equal(rendered.collections,1);
+    assert.equal(rendered.copyLink,true);
+    assert.ok(rendered.cardRight<=item.width+1,'Result panel extends beyond viewport');
+    assert.deepEqual(errors,[],'No JavaScript errors after rendering mixed media');
+    console.log('RESULT_RENDER_AUDIT '+JSON.stringify({view:item.label,entries:rendered.entries,
+      preview:rendered.preview,downloads:rendered.downloads,collections:rendered.collections,errors}));
     await page.close();
   }
 } finally {await browser.close()}
