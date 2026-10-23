@@ -6,8 +6,20 @@ Website **standalone**, bukan bagian dari All Tools Nexora. Landing page dan dow
 
 - HTML/CSS/JavaScript vanilla, frontend di `public/` (tanpa build frontend).
 - Netlify Functions Node.js: `netlify/functions/analyze.mjs`, `netlify/functions/download.mjs`, `netlify/functions/health.mjs`, menggunakan utilitas `api/` dan `lib/`.
-- `@coflyn/mori` (lisensi GPL-3.0-or-later) menyediakan engine scraper. Repo asli: https://github.com/coflyn/Mori
+- `@coflyn/mori` (GPL-3.0-or-later) menyediakan Mori Core, dengan `@coflyn/scrapr` (MIT) sebagai fallback eksperimental pada branch hybrid. Repo asli: https://github.com/coflyn/Mori
 - Penyimpanan riwayat di `localStorage` perangkat masing-masing. Tidak ada database atau login.
+
+## Experimental hybrid engine (branch only)
+
+> This feature is being reviewed in a separate branch; production `main` is unchanged.
+> Full implementation notes: [docs/HYBRID_ENGINE.md](docs/HYBRID_ENGINE.md).
+
+- Select `Auto` (Mori Core first, Scrapr fallback), `Mori Core`, or `Scrapr` in the optional form settings.
+- When using Scrapr, choose a supported provider such as TikTokIO, SnapTik, InDown, FDown, etc. The backend validates each provider against its fixed platform allowlist.
+- Supports the original 16 source categories plus SoundCloud, public file hosts and link resolvers (28 accepted categories overall). Acceptance of a domain is **not** a guarantee that its media can be retrieved.
+- Playlist/album metadata can be inspected item by item, but bulk download, M3U8/DASH muxing and media conversion are **not** implemented.
+- Shortlink resolver destinations are shown as **copy-only external metadata**. No automatic navigation or proxying of arbitrary destination pages.
+- The Scrapr version is pinned, optional browser dependencies are omitted, and provider attempts are bounded for Netlify cost control.
 
 ## Deploy ke Netlify dari GitHub (disarankan)
 
