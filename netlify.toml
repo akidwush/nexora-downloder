@@ -1,13 +1,14 @@
 # All Downloader Nexora - Netlify GitHub deployment.
 # No separate database, media storage, or proxy required.
 [build]
+  # Keep browser automation packages out of this lightweight serverless build.
   publish = "public"
   command = "npm run check && npm test"
 
 [functions]
   directory = "netlify/functions"
   node_bundler = "esbuild"
-  external_node_modules = ["@coflyn/mori"]
+  external_node_modules = ["@coflyn/mori", "@coflyn/scrapr"]
 
 [functions.analyze]
   included_files = ["node_modules/@coflyn/mori/bundle.js"]
