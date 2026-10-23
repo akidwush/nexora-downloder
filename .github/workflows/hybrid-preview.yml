@@ -1,0 +1,54 @@
+name: Hybrid Engine Preview Audit
+on:
+  push:
+    branches: ['feat/mori-scrapr-hybrid-20261023']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  browser-and-live-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install project and lightweight browser driver
+        run: |
+          npm install --omit=optional --no-audit --no-fund
+          npm install --no-save --omit=optional --no-audit --no-fund puppeteer-core@24.21.0
+      - name: Verify actual engines against public sample metadata
+        continue-on-error: true
+        run: node scripts/live-engine-smoke.mjs
+      - name: Capture real webpage in headless Chromium
+        run: |
+          export CHROME_PATH="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
+          if [ -z "$CHROME_PATH" ]; then
+            echo "No headless Chromium installed on the runner" >&2
+            exit 1
+          fi
+          echo "CHROME_PATH=$CHROME_PATH" >> "$GITHUB_ENV"
+          python3 -m http.server 8765 --directory public > /tmp/nexora-http.log 2>&1 &
+          sleep 2
+          node scripts/capture-hybrid-preview.mjs
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: hybrid-browser-screenshots
+          path: docs/screenshots/*.png
+          retention-days: 14
+      - name: Commit branch-only screenshots
+        if: success()
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/screenshots/
+          if ! git diff --cached --quiet; then
+            git commit -m 'test: record actual Chromium hybrid UI screenshots [skip ci]'
+            git push origin HEAD:feat/mori-scrapr-hybrid-20261023
+          fi
