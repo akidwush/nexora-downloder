@@ -125,6 +125,9 @@ export default async function handler(request) {
       'Content-Disposition': (mode === 'preview' ? 'inline' : 'attachment') + '; filename="' + safeFilename(token) + '"',
       'Cache-Control': 'private, no-store',
       'X-Content-Type-Options': 'nosniff',
+      // Video/large-file downloads use a hidden same-origin iframe to avoid
+      // navigating Chrome Android away from the Nexora page.
+      'X-Frame-Options': 'SAMEORIGIN',
       'Referrer-Policy': 'no-referrer'
     });
     for (const key of ['Content-Length', 'Content-Range', 'Accept-Ranges']) {
