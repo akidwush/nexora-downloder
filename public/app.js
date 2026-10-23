@@ -312,11 +312,11 @@ $('#paste-button').addEventListener('click',async()=>{
 });
 $('#scraper-engine').addEventListener('change',refreshScraperProviders);
 $('#url-input').addEventListener('input',()=>{
-  if($('#url-input').value.trim()) {const detected=detectPlatform($('#url-input').value);if(detected && $('[data-platform]').some(x=>x.dataset.platform===detected)) selectPlatform(detected,{focus:false});else setFeedback('Tips: gunakan link publik yang bisa diakses tanpa login.');}
+  if($('#url-input').value.trim()) {const detected=detectPlatform($('#url-input').value);if(detected && $$('[data-platform]').some(x=>x.dataset.platform===detected)) selectPlatform(detected,{focus:false});else setFeedback('Tips: gunakan link publik yang bisa diakses tanpa login.');}
   else setFeedback('Tips: gunakan link publik yang bisa diakses tanpa login.');
   refreshScraperProviders();
 });
-$('[data-platform]').forEach(btn=>{btn.addEventListener('click',()=>selectPlatform(btn.dataset.platform));btn.setAttribute('aria-pressed',String(btn.classList.contains('selected')));});
+$$('[data-platform]').forEach(btn=>{btn.addEventListener('click',()=>selectPlatform(btn.dataset.platform));btn.setAttribute('aria-pressed',String(btn.classList.contains('selected')));});
 $('#clear-history').addEventListener('click',()=>{try{localStorage.removeItem(historyKey);}catch{}renderHistory();toast('Riwayat lokal sudah dihapus.');});
 $('#mobile-menu-btn').addEventListener('click',()=>{const menu=$('#mobile-nav');const open=menu.hidden;menu.hidden=!open;$('#mobile-menu-btn').setAttribute('aria-expanded',String(open));$('#mobile-menu-btn').replaceChildren(icon(open?'close':'menu'));});
 $$('#mobile-nav a').forEach(link=>link.addEventListener('click',()=>{$('#mobile-nav').hidden=true;$('#mobile-menu-btn').setAttribute('aria-expanded','false');$('#mobile-menu-btn').replaceChildren(icon('menu'));}));
