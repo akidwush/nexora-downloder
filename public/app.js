@@ -166,7 +166,9 @@ function showResults(data) {
   wrap.append(header);
   const options=make('div','result-options');
   if (!Array.isArray(data.options) || !data.options.length) {
-    options.append(make('p','result-note','Tidak ada media publik yang berhasil ditemukan oleh engine.'));
+    options.append(make('p','result-note',Array.isArray(data.collectionItems) && data.collectionItems.length
+      ? 'Daftar album/playlist ditemukan. Pilih item di bawah untuk menganalisis file.'
+      : 'Tidak ada media publik yang berhasil ditemukan oleh engine.'));
   } else {
     data.options.forEach((entry,index) => {
       const item=make('div',`result-option${entry.ready?'':' disabled'}`);
